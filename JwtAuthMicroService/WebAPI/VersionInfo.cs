@@ -1,5 +1,5 @@
 namespace WebAPI;
 public static class VersionInfo
 {
-    public const string CODE = "f582d746dc49feca2ec80f553bd9eb59dec7c328";
+    public const string CODE = "d76696877f339a782c45e27107cb7cce2f728c88";
 }
