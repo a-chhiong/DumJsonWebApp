@@ -139,7 +139,7 @@ public class JwtAuthMiddleware
                 return false;
             }
             await _cache.SetAsync($"dpop-jti:{jti}", true, TimeSpan.FromMinutes(10));
-            context.SetMetadata(payload.meta);
+            context.SetItem(payload);
         }
         else if (scheme == JwtAuthScheme.Bearer)
         {
@@ -151,7 +151,7 @@ public class JwtAuthMiddleware
                 await context.Response.WriteAsync($"Auth failed: Missing Payload");
                 return false;
             }
-            context.SetMetadata(payload.meta);
+            context.SetItem(payload);
         }
 
         return true;

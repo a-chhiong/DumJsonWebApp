@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using CrossCutting.Extensions;
 using JoshAuthorization.Models;
+using JoshAuthorization.Objects;
 using JoshFileCache;
 using Microsoft.AspNetCore.Http;
 
@@ -32,7 +33,7 @@ public class PostService: IPostService
     
     public async Task<object> SearchPosts(HttpContext context, string keywords)
     {
-        var meta = context.GetMetadata<JwtMetadata>();
+        var meta = context.GetItem<TokenPayload>()?.meta;
         int.TryParse(meta?.Id, out var userId);
         var result = await _dummy.FetchPosts(keywords);
         return result.posts.Where(p => p.userId == userId).ToList();
@@ -40,7 +41,7 @@ public class PostService: IPostService
 
     public async Task<object> AddPost(HttpContext context, string title, string body)
     {
-        var meta = context.GetMetadata<JwtMetadata>();
+        var meta = context.GetItem<TokenPayload>()?.meta;
         int.TryParse(meta?.Id, out var userId);
         var result = await _dummy.AddPost(userId, title, body);
         return result;

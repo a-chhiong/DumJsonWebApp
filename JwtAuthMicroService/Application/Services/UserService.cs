@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using CrossCutting.Extensions;
 using JoshAuthorization.Models;
+using JoshAuthorization.Objects;
 using JoshFileCache;
 using Microsoft.AspNetCore.Http;
 
@@ -22,7 +23,7 @@ public class UserService: IUserService
     
     public async Task<object> GetMyself(HttpContext context)
     {        
-        var meta = context.GetMetadata<JwtMetadata>();
+        var meta = context.GetItem<TokenPayload>()?.meta;
         int.TryParse(meta?.Id, out var userId);
         var result = await _dummy.GetUser(userId);
         return result;

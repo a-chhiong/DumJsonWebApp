@@ -77,7 +77,7 @@ public class JwtAuthService : IJwtAuthService, IDisposable
             iat = now,
             exp = now + JwtAuthConstant.REFRESH_EXPIRY_IN_SECONDS,
             nbf = now + JwtAuthConstant.REFRESH_NOT_BEFORE_IN_SECONDS,
-            jti = jti
+            jti = jti,
         };
 
         return new JwtWrapper
@@ -113,7 +113,7 @@ public class JwtAuthService : IJwtAuthService, IDisposable
             if (payload.aud != _audience) return new JwtAuthResult<TokenData> { IsSuccess = false, Error = JwtError.InvalidAudience };
 
             // Expiry logic
-            if (now > (payload.exp + JwtAuthConstant.CLOCK_SKEW_IN_SECONDS))
+            if (now > payload.exp)
                 return new JwtAuthResult<TokenData> { IsSuccess = false, Error = JwtError.ExpiredToken };
 
             // NBF logic
@@ -121,7 +121,7 @@ public class JwtAuthService : IJwtAuthService, IDisposable
             {
                 if (!payload.nbf.HasValue)
                     return new JwtAuthResult<TokenData> { IsSuccess = false, Error = JwtError.InvalidNBF };
-                if (now < (payload.nbf.Value - JwtAuthConstant.CLOCK_SKEW_IN_SECONDS))
+                if (now < payload.nbf.Value)
                     return new JwtAuthResult<TokenData> { IsSuccess = false, Error = JwtError.UntimelyToken };
             }
 
@@ -218,7 +218,7 @@ public class JwtAuthService : IJwtAuthService, IDisposable
         // If everything passes, return the Normal Token payload
         return new JwtAuthResult<AccessData> { IsSuccess = true , Data = new AccessData { Payload = tokenPayload, DPoPJti = dpopPayload?.jti } };
     }
-    
+
     public void Dispose()
     {
         _publicRsa.Dispose();

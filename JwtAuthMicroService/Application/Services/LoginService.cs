@@ -1,9 +1,11 @@
 using Application.Interfaces;
 using Application.Models;
 using CrossCutting.Constants;
+using CrossCutting.Extensions;
 using Domain.ValueObjects.DummyJson;
 using JoshAuthorization;
 using JoshAuthorization.Models;
+using JoshAuthorization.Objects;
 using JoshFileCache;
 using Microsoft.AspNetCore.Http;
 using ZiggyCreatures.Caching.Fusion;
@@ -14,7 +16,7 @@ public interface ITokenService
 {
     public Task<object> Login(HttpRequest request, string username, string password);
     public Task<object> Refresh(HttpRequest request, string refreshToken);
-    public Task<object> Logout(HttpRequest request);
+    public Task<object> Logout(HttpContext context);
 }
 
 public class TokenService : ITokenService
@@ -50,12 +52,13 @@ public class TokenService : ITokenService
         var jwk = dpopResult.IsSuccess ? dpopResult.Data?.Jwk : null;
         
         // 4. Create tokens bound to the client's public key
-        var tokenWrapper = _jwtAuth.Create(new JwtMetadata
+        var metadata = new JwtMetadata()
         {
             Id = $"{user.id}",
             LastName = user.lastName,
             FirstName = user.firstName,
-        }, jwk);
+        };
+        var tokenWrapper = _jwtAuth.Create(metadata, jwk);
         
         await _cache.SetAsync(
             $"token-jti:{tokenWrapper.Jti}", 
@@ -65,6 +68,7 @@ public class TokenService : ITokenService
                 token_type = tokenWrapper.TokenType,
                 refresh_token = tokenWrapper.RefreshToken,
                 jwk = jwk,
+                meta = metadata
             }, 
             TimeSpan.FromSeconds(JwtAuthConstant.REFRESH_EXPIRY_IN_SECONDS + JwtAuthConstant.CLOCK_SKEW_IN_SECONDS));
 
@@ -81,7 +85,7 @@ public class TokenService : ITokenService
         var refreshResult = await _jwtAuth.ValidateRefresh(refreshToken);
         if (!refreshResult.IsSuccess)
         {
-            throw new BadHttpRequestException("Refresh token is not valid!");
+            throw new BadHttpRequestException($"Refresh token is not valid: {refreshResult.Error}");
         }
 
         var jti = refreshResult.Data?.Payload?.jti;
@@ -107,11 +111,11 @@ public class TokenService : ITokenService
                 || entryJwk == null 
                 || dpopResult.Data?.Jwk?.Equals(entryJwk) != true)
             {
-                throw new BadHttpRequestException("Refresh token is not bound!");
+                throw new BadHttpRequestException($"Refresh token is not bound: {dpopResult}");
             }
         }
 
-        var metadata = refreshResult.Data?.Payload?.meta;
+        var metadata = tokenCacheEntry?.meta;
         if (metadata == null)
         {
             throw new BadHttpRequestException("Metadata is not found!");
@@ -131,8 +135,13 @@ public class TokenService : ITokenService
         };
     }
     
-    public Task<object> Logout(HttpRequest request)
-    {   
-        throw new NotImplementedException();
+    public async Task<object> Logout(HttpContext context)
+    {
+        var jti = context.GetItem<TokenPayload>()?.jti;
+        if (!string.IsNullOrEmpty(jti))
+        {
+            await _cache.RemoveAsync($"token-jti:{jti}");   
+        }
+        return new { };
     }
 }

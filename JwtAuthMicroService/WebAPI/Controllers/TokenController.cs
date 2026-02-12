@@ -11,7 +11,6 @@ namespace WebAPI.Controllers;
 /// <summary>
 /// 提供登入/登出/重新驗證機制
 /// </summary>
-[AllowAnonymous]
 public class TokenController: BaseController
 {
     private readonly IHostEnvironment _environment;
@@ -32,6 +31,7 @@ public class TokenController: BaseController
     /// <returns></returns>
     [HttpPost("Auth")]
     [Consumes("application/json")]
+    [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var result = await _service.Login(Request, request.Username, request.Password);
@@ -46,6 +46,7 @@ public class TokenController: BaseController
     /// <returns></returns>
     [HttpPut("Refresh")]
     [Consumes("application/json")]
+    [AllowAnonymous]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
     {
         var result = await _service.Refresh(Request, request.RefreshToken);
@@ -60,7 +61,7 @@ public class TokenController: BaseController
     [HttpDelete("")]
     public async Task<IActionResult> Logout()
     {
-        var result = await _service.Logout(Request);
+        var result = await _service.Logout(HttpContext);
         
         return Ok(result);
     }
