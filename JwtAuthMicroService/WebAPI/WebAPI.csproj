@@ -40,25 +40,29 @@
 
     <Target Name="InjectVersionInfo" BeforeTargets="BeforeBuild">
         <!-- Try to get Git SHA -->
-        <Exec Command="git log -1 --pretty=format:%H > $(OutDir)version.info"
+        <Exec Command="git log -1 --pretty=format:%H > $(SolutionDir)version.info"
               WorkingDirectory="$(SolutionDir)"
               IgnoreExitCode="true"
               ContinueOnError="true" />
-        
+
         <!-- Read file if it exists -->
-        <ReadLinesFromFile File="$(OutDir)version.info">
-            <Output TaskParameter="Lines" PropertyName="VersionInfo" />
+        <ReadLinesFromFile File="$(SolutionDir)version.info">
+            <Output TaskParameter="Lines" PropertyName="VersionCode" />
         </ReadLinesFromFile>
-        
+
         <!-- Fallback: write timestamp into version.info if VersionInfo is empty -->
         <PropertyGroup>
             <UnixTimestamp>$([System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())</UnixTimestamp>
         </PropertyGroup>
         <WriteLinesToFile
-                Condition="'$(VersionInfo)' == ''"
-                File="$(OutDir)version.info"
+                Condition="'$(VersionCode)' == ''"
+                File="$(SolutionDir)version.info"
                 Lines="$(UnixTimestamp)"
                 Overwrite="true" />
     </Target>
+
+    <ItemGroup>
+        <None Include="$(SolutionDir)version.info" CopyToOutputDirectory="Always" />
+    </ItemGroup>
 
 </Project>
