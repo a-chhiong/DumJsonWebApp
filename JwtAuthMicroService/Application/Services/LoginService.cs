@@ -132,9 +132,7 @@ public class TokenService : ITokenService
     }
     
     public Task<object> Logout(HttpRequest request)
-    {
-        var accessToken = request.Headers[HttpHeaders.Authorization].ToString();
-        
+    {   
         throw new NotImplementedException();
     }
 }

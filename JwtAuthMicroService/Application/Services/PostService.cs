@@ -8,6 +8,7 @@ namespace Application.Services;
 
 public interface IPostService
 {
+    public Task<object> GetPost(HttpContext context, int id);
     public Task<object> SearchPosts(HttpContext context, string keywords);
     public Task<object> AddPost(HttpContext context, string title, string body);
     public Task<object> UpdatePost(int id, string title, string body);
@@ -21,6 +22,12 @@ public class PostService: IPostService
     public PostService(IDummyJsonAdapter dummy)
     {
         _dummy = dummy;
+    }
+    
+    public async Task<object> GetPost(HttpContext context, int id)
+    {
+        var result = await _dummy.GetPost(id);
+        return result;
     }
     
     public async Task<object> SearchPosts(HttpContext context, string keywords)

@@ -5,7 +5,7 @@ using WebAPI.ViewModels.Post;
 namespace WebAPI.Controllers;
 
 /// <summary>
-/// 使用者的貼文 <see href="https://dummyjson.com/docs/posts">DummyJSON Posts - Docs</see>
+/// 貼文們 <see href="https://dummyjson.com/docs/posts">DummyJSON Posts - Docs</see>
 /// </summary>
 public class PostController: BaseController
 {
@@ -18,6 +18,18 @@ public class PostController: BaseController
     {
         _environment = environment;
         _service = service;
+    }
+    
+    /// <summary>
+    /// Fetch Any User own post by ID
+    /// </summary>
+    [HttpGet("{id}")]
+    [Consumes("application/json")]
+    public async Task<IActionResult> Get([FromRoute] int id)
+    {
+        var result = await _service.GetPost(HttpContext, id);
+        
+        return Ok(result);
     }
     
     /// <summary>

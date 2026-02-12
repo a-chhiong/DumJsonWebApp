@@ -30,7 +30,7 @@ public class TokenController: BaseController
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
-    [HttpPost("User")]
+    [HttpPost("Auth")]
     [Consumes("application/json")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
