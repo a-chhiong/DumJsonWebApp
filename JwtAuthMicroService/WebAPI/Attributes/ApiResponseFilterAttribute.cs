@@ -39,6 +39,11 @@ public class ApiResponseFilterAttribute : ActionFilterAttribute, IExceptionFilte
     public void OnException(ExceptionContext context)
     {
         var exception = context.Exception;
+
+        if (exception is BadHttpRequestException)
+        {
+            return;
+        }
         
         var response = Parse(exception);
         

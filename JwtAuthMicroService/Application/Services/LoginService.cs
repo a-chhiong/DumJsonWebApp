@@ -1,3 +1,4 @@
+using System.Net;
 using Application.Interfaces;
 using Application.Models;
 using CrossCutting.Constants;
@@ -85,7 +86,7 @@ public class TokenService : ITokenService
         var refreshResult = await _jwtAuth.ValidateRefresh(refreshToken);
         if (!refreshResult.IsSuccess)
         {
-            throw new BadHttpRequestException($"Refresh token is not valid: {refreshResult.Error}");
+            throw new BadHttpRequestException($"Refresh token is not valid: {refreshResult.Error}", (int)HttpStatusCode.Unauthorized);
         }
 
         var jti = refreshResult.Data?.Payload?.jti;
@@ -93,12 +94,12 @@ public class TokenService : ITokenService
         var entryRefreshToken = tokenCacheEntry?.refresh_token;
         if (string.IsNullOrEmpty(entryRefreshToken))
         {
-            throw new BadHttpRequestException("Refresh token is not found!");
+            throw new BadHttpRequestException("Refresh token is not found!", (int)HttpStatusCode.Unauthorized);
         }
 
         if (!string.Equals(entryRefreshToken, refreshToken))
         {
-            throw new BadHttpRequestException("Refresh token is not matched!");
+            throw new BadHttpRequestException("Refresh token is not matched!", (int)HttpStatusCode.Unauthorized);
         }
         
         var entryTokenType = tokenCacheEntry?.token_type;
@@ -111,14 +112,14 @@ public class TokenService : ITokenService
                 || entryJwk == null 
                 || dpopResult.Data?.Jwk?.Equals(entryJwk) != true)
             {
-                throw new BadHttpRequestException($"Refresh token is not bound: {dpopResult}");
+                throw new BadHttpRequestException($"Refresh token is not bound: {dpopResult}", (int)HttpStatusCode.Unauthorized);
             }
         }
 
         var metadata = tokenCacheEntry?.meta;
         if (metadata == null)
         {
-            throw new BadHttpRequestException("Metadata is not found!");
+            throw new BadHttpRequestException("Metadata is not found!", (int)HttpStatusCode.Unauthorized);
         }
         var tokenWrapper = _jwtAuth.Create(new JwtMetadata
         {
