@@ -76,12 +76,8 @@ builder.Services.AddSqliteCache(options => {
 builder.Services.AddFusionCache()
     .WithDefaultEntryOptions(options =>
     {
-        options.Duration = TimeSpan.FromSeconds(30); // shorter L1 lifetime
-        options.MemoryCacheDuration = TimeSpan.FromSeconds(30);
-        // API won't wait for SQLite to finish writing before responding
-        options.AllowBackgroundDistributedCacheOperations = true; 
-        // If SQLite is busy/locked, don't hang the API, just skip L2 for this call
-        options.DistributedCacheSoftTimeout = TimeSpan.FromMilliseconds(500);
+        options.SetDuration(TimeSpan.FromMinutes(10));
+        options.SetFailSafe(true,TimeSpan.FromHours(1));
     })
     .WithSerializer(new FusionCacheSystemTextJsonSerializer()) // Required for L2
     .WithDistributedCache(sp => sp.GetRequiredService<IDistributedCache>());

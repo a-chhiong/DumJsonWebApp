@@ -38,21 +38,20 @@ public class TokenService : ITokenService
     
     public async Task<object> Login(HttpRequest request, string username, string password)
     {
-        // 1. Extract DPoP header from the request (Optional but recommended for binding)
+        // 1. Extract DPoP header from the request (if there is)
         var dpopToken = request.Headers[HttpHeaders.DPoP].ToString();
+        var dpopResult = await _jwtAuth.ValidateDPoP(dpopToken, request);
+        var jwk = dpopResult.IsSuccess ? dpopResult.Data?.Jwk : null;
         
         // 2. Authenticate the user (standard DB check)
         var response = await _dummy.FetchUser(username);
         var user = response.users.FirstOrDefault(u => u.password == password);
         if (user == null)
         {
-            throw new ArgumentException("Password is not matched!");
+            throw new BadHttpRequestException("Wrong Authentication", (int)HttpStatusCode.BadRequest);
         }
         
-        var dpopResult = await _jwtAuth.ValidateDPoP(dpopToken, request);
-        var jwk = dpopResult.IsSuccess ? dpopResult.Data?.Jwk : null;
-        
-        // 4. Create tokens bound to the client's public key
+        // 3. Create tokens bound to the client's public key
         var metadata = new JwtMetadata()
         {
             Id = $"{user.id}",
@@ -61,6 +60,7 @@ public class TokenService : ITokenService
         };
         var tokenWrapper = _jwtAuth.Create(metadata, jwk);
         
+        // 4. Make it Stateful, stored on Server Cache or Persistence
         await _cache.SetAsync(
             $"token-jti:{tokenWrapper.Jti}", 
             new TokenCacheEntry
@@ -83,50 +83,60 @@ public class TokenService : ITokenService
 
     public async Task<object> Refresh(HttpRequest request, string refreshToken)
     {
+        // 1. Validate the Refresh Token
         var refreshResult = await _jwtAuth.ValidateRefresh(refreshToken);
         if (!refreshResult.IsSuccess)
         {
             throw new BadHttpRequestException($"Refresh token is not valid: {refreshResult.Error}", (int)HttpStatusCode.Unauthorized);
         }
 
+        // 2. Comparing with Refresh Token Cache
         var jti = refreshResult.Data?.Payload?.jti;
         var tokenCacheEntry = await _cache.GetOrDefaultAsync<TokenCacheEntry?>($"token-jti:{jti}");
-        var entryRefreshToken = tokenCacheEntry?.refresh_token;
-        if (string.IsNullOrEmpty(entryRefreshToken))
+        var existedRefreshToken = tokenCacheEntry?.refresh_token;
+        if (string.IsNullOrEmpty(existedRefreshToken))
         {
             throw new BadHttpRequestException("Refresh token is not found!", (int)HttpStatusCode.Unauthorized);
         }
-
-        if (!string.Equals(entryRefreshToken, refreshToken))
+        if (!string.Equals(existedRefreshToken, refreshToken))
         {
             throw new BadHttpRequestException("Refresh token is not matched!", (int)HttpStatusCode.Unauthorized);
         }
         
-        var entryTokenType = tokenCacheEntry?.token_type;
-        var entryJwk = tokenCacheEntry?.jwk;   
-        var dpopToken = request.Headers[HttpHeaders.DPoP].ToString();
-        var dpopResult = await _jwtAuth.ValidateDPoP(dpopToken, request);
-        if (string.Equals(entryTokenType, "DPoP", StringComparison.OrdinalIgnoreCase))
+        // 3. Validate the DPoP Token (if there is DPoP flow)
+        var existedTokenType = tokenCacheEntry?.token_type;
+        var existedJwk = tokenCacheEntry?.jwk;   
+        if (string.Equals(existedTokenType, "DPoP", StringComparison.OrdinalIgnoreCase))
         {
-            if (!dpopResult.IsSuccess 
-                || entryJwk == null 
-                || dpopResult.Data?.Jwk?.Equals(entryJwk) != true)
+            var dpopToken = request.Headers[HttpHeaders.DPoP].ToString();
+            var dpopResult = await _jwtAuth.ValidateDPoP(dpopToken, request);
+            var jwk = dpopResult.Data?.Jwk;
+            if (!dpopResult.IsSuccess || jwk == null)
             {
-                throw new BadHttpRequestException($"Refresh token is not bound: {dpopResult}", (int)HttpStatusCode.Unauthorized);
+                throw new BadHttpRequestException($"DPoP token is not valid: {dpopResult.Error}", (int)HttpStatusCode.Unauthorized);
+            }
+            if (existedJwk == null)
+            {
+                throw new BadHttpRequestException("JWK is not found!", (int)HttpStatusCode.Unauthorized);
+            }
+            if (!jwk.Equals(existedJwk))
+            {
+                throw new BadHttpRequestException("JWK is not matched!", (int)HttpStatusCode.Unauthorized);
             }
         }
 
-        var metadata = tokenCacheEntry?.meta;
-        if (metadata == null)
+        // 4. Reconstruct MetaData and Issue New Token Pair
+        var existedMetadata = tokenCacheEntry?.meta;
+        if (existedMetadata == null)
         {
             throw new BadHttpRequestException("Metadata is not found!", (int)HttpStatusCode.Unauthorized);
         }
         var tokenWrapper = _jwtAuth.Create(new JwtMetadata
         {
-            Id = metadata.Id,
-            LastName = metadata.LastName,
-            FirstName = metadata.FirstName,
-        }, entryJwk);
+            Id = existedMetadata.Id,
+            LastName = existedMetadata.LastName,
+            FirstName = existedMetadata.FirstName,
+        }, existedJwk);
         
         return new
         {
@@ -138,6 +148,7 @@ public class TokenService : ITokenService
     
     public async Task<object> Logout(HttpContext context)
     {
+        // Remove the counterpart in Cache / Persistence (if there is)
         var jti = context.GetItem<TokenPayload>()?.jti;
         if (!string.IsNullOrEmpty(jti))
         {
