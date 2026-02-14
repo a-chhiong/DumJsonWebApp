@@ -36,15 +36,14 @@
 
     <ItemGroup>
         <!-- Include all files from your Web folder -->
-        <Content Include="Web\**\*.*">
+        <Content Include="WebPage\**\*.*">
             <!-- Always copy them to output -->
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
-
+    
     <ItemGroup>
       <Folder Include="Properties\PublishProfiles\" />
-      <Folder Include="Web\" />
     </ItemGroup>
 
     <Target Name="InjectVersionInfo" BeforeTargets="BeforeBuild">

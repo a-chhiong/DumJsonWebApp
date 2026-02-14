@@ -9,7 +9,9 @@ public class TraceMiddleware
     private readonly RequestDelegate _next;
     private readonly IConfiguration _configuration;
 
-    public TraceMiddleware(RequestDelegate next, IConfiguration configuration)
+    public TraceMiddleware(
+        RequestDelegate next,
+        IConfiguration configuration)
     {
         _next = next;
         _configuration = configuration;

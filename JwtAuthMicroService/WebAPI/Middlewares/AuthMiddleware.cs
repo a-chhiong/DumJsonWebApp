@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Claims;
+using System.Security.Principal;
 using JoshAuthorization;
 using JoshAuthorization.Enums;
 using JoshAuthorization.Extensions;
@@ -29,13 +31,6 @@ public class AuthMiddleware
     {
         var endpoint = context.GetEndpoint();
         var isAnonymous = endpoint?.Metadata?.GetMetadata<IAllowAnonymous>() != null;
-        var isWeb = context.Request.Path.StartsWithSegments("/web", StringComparison.OrdinalIgnoreCase);
-
-        if (isWeb)
-        {
-            // The Exception, will contains web resources
-            return;
-        }
         
         if (endpoint == null)
         {

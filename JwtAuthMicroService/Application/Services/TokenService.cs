@@ -77,6 +77,7 @@ public class TokenService : ITokenService
                 TokenType = tokenWrapper.TokenType,
                 RefreshToken = tokenWrapper.RefreshToken,
                 Jwk = jwk,
+                Subject = $"{user.id}",
                 Custom = custom
             },
             TimeSpan.FromSeconds(duration));
@@ -142,6 +143,7 @@ public class TokenService : ITokenService
                 TokenType = tokenWrapper.TokenType,
                 RefreshToken = tokenWrapper.RefreshToken,
                 Jwk = comingJwk,
+                Subject = subject,
                 Custom = custom
             },
             TimeSpan.FromSeconds(duration));

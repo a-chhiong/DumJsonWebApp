@@ -131,47 +131,6 @@ builder.Services.AddApplicationServices();
 
 var app = builder.Build();
 
-// Serve static files from wwwroot
-app.UseStaticFiles();
-
-// Serve static files from /Web
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(builder.Environment.ContentRootPath, "Web")),
-    RequestPath = "/Web"
-});
-
-// Add SPA fallback for /Web
-app.Use(async (context, next) =>
-{
-    // Root fallback
-    if (context.Request.Path == "/")
-    {
-        context.Response.ContentType = "text/html";
-        await context.Response.SendFileAsync(
-            Path.Combine(builder.Environment.ContentRootPath, "Web", "index.html")
-        );
-        return;
-    }
-    
-    // Only handle requests starting with /Web
-    if (context.Request.Path.StartsWithSegments("/Web", StringComparison.OrdinalIgnoreCase))
-    {
-        var path = context.Request.Path.Value ?? string.Empty;
-        var filePath = Path.Combine(builder.Environment.ContentRootPath, "Web", path.TrimStart('/'));
-
-        // If the requested file does not exist, serve index.html
-        if (!File.Exists(filePath) && !Directory.Exists(filePath))
-        {
-            context.Response.Redirect("/");
-            return;
-        }
-    }
-
-    await next();
-});
-
 app.UseCors("CorsPolicy");
 
 if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
@@ -181,6 +140,14 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 }
 
 app.UseHttpsRedirection();
+// Serve static files
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "WebPage")),
+    RequestPath = "/web"
+});
+app.UseMiddleware<SpaMiddleware>();
 app.UseMiddleware<AuthMiddleware>();
 app.UseMiddleware<TraceMiddleware>(); 
 

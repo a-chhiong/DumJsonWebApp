@@ -21,7 +21,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CrossCutting", "CrossCuttin
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Domain", "Domain", "{AB3621BE-CE8E-4CED-8D57-09C11A44F8EA}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WebAPI", "WebAPI", "{5A4F6E8C-E058-46EF-A8C4-397B6725B02C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Presentation", "Presentation", "{5A4F6E8C-E058-46EF-A8C4-397B6725B02C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JoshAuthorization", "JoshAuthorization\JoshAuthorization.csproj", "{3535B200-FB36-4E0B-B48A-AD24FAAB5D27}"
 EndProject
