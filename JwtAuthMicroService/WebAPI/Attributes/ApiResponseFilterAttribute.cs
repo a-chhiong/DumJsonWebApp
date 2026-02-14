@@ -40,16 +40,16 @@ public class ApiResponseFilterAttribute : ActionFilterAttribute, IExceptionFilte
     {
         var exception = context.Exception;
 
-        if (exception is BadHttpRequestException)
+        if (exception is BadHttpRequestException badRequest)
         {
-            return;
+            context.HttpContext.Response.StatusCode = badRequest.StatusCode;
+            context.Result = new ObjectResult(badRequest.Message);
         }
-        
-        var response = Parse(exception);
-        
-        context.HttpContext.Response.StatusCode = 200;
-        context.Result = new ObjectResult(response);
-
+        else
+        {
+            context.HttpContext.Response.StatusCode = 200;
+            context.Result = new ObjectResult(Parse(exception));
+        }
         context.ExceptionHandled = true; // IMPORTANT
     }
     

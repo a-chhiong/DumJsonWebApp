@@ -54,7 +54,7 @@ builder.Services.AddCors(options =>
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials()
-                .SetPreflightMaxAge(TimeSpan.FromHours(1));
+                .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
         }
     });
 });
@@ -147,9 +147,9 @@ app.UseStaticFiles(new StaticFileOptions
         Path.Combine(builder.Environment.ContentRootPath, "WebPage")),
     RequestPath = "/web"
 });
+app.UseMiddleware<TraceMiddleware>(); 
 app.UseMiddleware<SpaMiddleware>();
 app.UseMiddleware<AuthMiddleware>();
-app.UseMiddleware<TraceMiddleware>(); 
 
 app.MapControllers();
 

@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "SPA": {
+    "DevSPA": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
@@ -33,10 +33,7 @@
     },
     "Staging": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "applicationUrl": "http://localhost:33418",
+      "applicationUrl": "http://0.0.0.0:5050",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Staging",
         "JWT_AUTH_ENVIRONMENT": "UAT"

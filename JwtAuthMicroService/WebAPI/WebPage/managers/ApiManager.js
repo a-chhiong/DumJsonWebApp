@@ -121,7 +121,7 @@ class ApiManager {
                             if (!rt) throw new Error("No refresh token for this slot");
 
                             console.log(`[ApiManager] Refreshing token chain...`);
-                            const res = await this.tokenApi.put('/refresh', { 
+                            const res = await this.tokenApi.post('/refresh', { 
                                 refreshToken: rt,
                             });
                             
