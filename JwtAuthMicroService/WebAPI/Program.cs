@@ -131,15 +131,45 @@ builder.Services.AddApplicationServices();
 
 var app = builder.Build();
 
-// Serve static files from wwwroot and /Web
-app.UseStaticFiles(); // for wwwroot
+// Serve static files from wwwroot
+app.UseStaticFiles();
 
-// Explicitly serve /Web folder
+// Serve static files from /Web
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
         Path.Combine(builder.Environment.ContentRootPath, "Web")),
     RequestPath = "/Web"
+});
+
+// Add SPA fallback for /Web
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/")
+    {
+        // Redirect to /Web/index.html
+        context.Response.Redirect("/Web");
+        return;
+    }
+    
+    // Only handle requests starting with /Web
+    if (context.Request.Path.StartsWithSegments("/Web", StringComparison.OrdinalIgnoreCase))
+    {
+        var path = context.Request.Path.Value ?? string.Empty;
+        var filePath = Path.Combine(builder.Environment.ContentRootPath, "Web", path.TrimStart('/'));
+
+        // If the requested file does not exist, serve index.html
+        if (!File.Exists(filePath))
+        {
+            context.Response.ContentType = "text/html";
+            await context.Response.SendFileAsync(
+                Path.Combine(builder.Environment.ContentRootPath, "Web", "index.html")
+            );
+            return;
+        }
+    }
+
+    await next();
 });
 
 app.UseCors("CorsPolicy");
