@@ -8,14 +8,11 @@ import axios from 'axios';
  * Responsible for Axios Interceptors
  */
 
-export const BASE_URL = {
-    Development : "http://localhost:33418/api",
-    Staging : "https://josh-backend.runasp.net/api",
-};
-
 class ApiManager {
     constructor() {
-        this._BASE_URL = BASE_URL.Development;
+        // Example: derive base URL dynamically
+        const origin = window.location.origin;
+        this._BASE_URL = `${origin}/api`;
         this._isInitialised = false;
         this._refreshPromise = null;
     }

@@ -142,7 +142,7 @@ public class JwtAuthService : IJwtAuthService
             if (headers["typ"]?.ToString() != "dpop+jwt")
                 return new JwtAuthResult<DPoPData> { IsSuccess = false, Error = JwtError.InvalidToken };
 
-            JwkObject jwkObj = null;
+            JwkObject? jwkObj = null;
             // Safely map header jwk to our JwkObject
             if (headers.TryGetValue("jwk", out var jwk) && jwk is IDictionary<string, object> dict)
             {

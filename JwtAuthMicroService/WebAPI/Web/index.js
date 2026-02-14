@@ -6,8 +6,6 @@ import { vaultMgr } from './managers/VaultManager.js';
 import { dpopMgr } from './managers/DPoPManger.js';
 import { stateHub } from './objects/EventHub.js';
 
-const tokenExpiry = Config.TOKEN_EXPIRY; // minutes
-
 let countdownInterval = null;
 
 // Life Cycle
@@ -77,7 +75,6 @@ export function close() {
 
 // Event Register
 document.getElementById("loginBtn").addEventListener("click", ClickLogin);
-document.getElementById("loginBadBtn").addEventListener("click", ClickLoginBad);
 document.getElementById("profileBtn").addEventListener("click", ClickProfile);
 document.getElementById("postsBtn").addEventListener("click", ClickPosts);
 document.getElementById("productsBtn").addEventListener("click", ClickProducts);
@@ -125,25 +122,16 @@ function setCountdownColor(color){
 //==========//
 
 async function ClickLogin() {
-    _login(getUsername(), getPassword());
-}
-
-async function ClickLoginBad() {
-    _login(getUsername(), getPassword(), false);
-}
-
-// Login handler
-async function _login(username, password, useRefreshToken = true) {
     hideCountdown();
     clearOutput();
     showLoader();
     try {
         const res = await apiMgr.tokenApi.post("/login", {
-            username: username,
-            password: password
+            username: getUsername(),
+            password: getPassword()
         });
         const { accessToken, refreshToken } = res.data.data;
-        await tokenMgr.saveTokens( accessToken, useRefreshToken ? refreshToken : null);
+        await tokenMgr.saveTokens( accessToken, refreshToken);
         console.log(`[Login] Logged in, tokens stored!`);
         showOutput(JSON.stringify(res.data, null, 2));
     } catch (err) {

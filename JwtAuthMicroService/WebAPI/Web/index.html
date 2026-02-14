@@ -13,7 +13,8 @@
         }
     }
     </script>
-    <script type="module" src="index.js"></script>
+    <base href="/Web/">
+    <script type="module" src="./index.js"></script>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👽</text></svg>">
     <style>
     #loader {
@@ -80,17 +81,15 @@
     </style>
 </head>
 <body>
-    <h1>This is a RefreshToken Demo</h1>
+    <h1>This is a DPoP Flow Demo</h1>
     <h2>Thanks to <a href="https://dummyjson.com/docs/auth" target="_blank">DummyJson</a></h2>
     <h4>0. Open Developer Window</h4>
     <h4>1. Enter Username and Password</h4>
-    <h5>> all users can be found <a href="https://dummyjson.com/users" target="_blank">HERE</a></h5>
     <h4>2. Hit the Login Button</h4>
-    <h5>> the 'Login(bad)' is simulating mishandled RefreshToken flow
     <h4>3. Hit the Profile Button</h4>
     <h4>4. Wait for more than 1 minute</h4>
     <h4>5. Hit the Profile Button Again and inspect the XHR behaviours</h4>
-    <h6>by Josh</h3>
+    <h6>by Josh</h6>
     <hr>
 
     <!-- Username & Password Inputs -->
@@ -107,7 +106,6 @@
 
     <div class="button-container">
         <button id="loginBtn">Login</button>
-        <button id="loginBadBtn">Login(bad)</button>
         <button id="profileBtn">Profile</button>
         <button id="postsBtn">Posts</button>
         <button id="productsBtn">Products</button>

@@ -145,10 +145,13 @@ app.UseStaticFiles(new StaticFileOptions
 // Add SPA fallback for /Web
 app.Use(async (context, next) =>
 {
+    // Root fallback
     if (context.Request.Path == "/")
     {
-        // Redirect to /Web/index.html
-        context.Response.Redirect("/Web");
+        context.Response.ContentType = "text/html";
+        await context.Response.SendFileAsync(
+            Path.Combine(builder.Environment.ContentRootPath, "Web", "index.html")
+        );
         return;
     }
     
@@ -159,12 +162,9 @@ app.Use(async (context, next) =>
         var filePath = Path.Combine(builder.Environment.ContentRootPath, "Web", path.TrimStart('/'));
 
         // If the requested file does not exist, serve index.html
-        if (!File.Exists(filePath))
+        if (!File.Exists(filePath) && !Directory.Exists(filePath))
         {
-            context.Response.ContentType = "text/html";
-            await context.Response.SendFileAsync(
-                Path.Combine(builder.Environment.ContentRootPath, "Web", "index.html")
-            );
+            context.Response.Redirect("/");
             return;
         }
     }

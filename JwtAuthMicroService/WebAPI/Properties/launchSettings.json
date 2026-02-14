@@ -9,6 +9,17 @@
     }
   },
   "profiles": {
+    "SPA": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "Web",
+      "applicationUrl": "http://localhost:54321",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JWT_AUTH_ENVIRONMENT": "Test"
+      }
+    },
     "Development": {
       "commandName": "Project",
       "dotnetRunMessages": true,
