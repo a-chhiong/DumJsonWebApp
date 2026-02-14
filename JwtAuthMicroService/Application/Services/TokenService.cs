@@ -93,7 +93,7 @@ public class TokenService : ITokenService
     public async Task<object> Refresh(string refreshToken)
     {
         // 1. Validate the Refresh Token
-        var refreshResult = await _jwtAuth.ValidateRefresh(refreshToken);
+        var refreshResult = await _jwtAuth.Validate(refreshToken, true);
         if (!refreshResult.IsSuccess)
         {
             throw new BadHttpRequestException($"Refresh token is not valid: {refreshResult.Error}", (int)HttpStatusCode.Unauthorized);
@@ -160,7 +160,7 @@ public class TokenService : ITokenService
     public async Task<object> Logout(string refreshToken)
     {
         // 1. Validate the Access Token
-        var refreshResult = await _jwtAuth.ValidateRefresh(refreshToken);
+        var refreshResult = await _jwtAuth.Validate(refreshToken);
         if (refreshResult.IsSuccess)
         {
             // 2. Remove the counterpart in Cache / Persistence (if there is)

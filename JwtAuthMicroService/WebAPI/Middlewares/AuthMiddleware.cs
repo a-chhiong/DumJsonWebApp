@@ -64,7 +64,7 @@ public class AuthMiddleware
             return true;
         
         // 3. Validate it if there IS!
-        var dpopResult = await _jwtAuth.ValidateDPoP(dpopToken, context.Request);
+        var dpopResult = await _jwtAuth.Validate(dpopToken, context.Request);
         if (dpopResult.IsSuccess)
         {
             var dpopPayload = dpopResult.Data?.DPoP;
@@ -100,8 +100,8 @@ public class AuthMiddleware
         // Call the service based on the resolved scheme
         IJwtAuthResult<IJwtResultData> result = scheme switch
         {
-            JwtAuthScheme.DPoP => await _jwtAuth.ValidateAccess(authToken, dpopToken, request),
-            JwtAuthScheme.Bearer => await _jwtAuth.ValidateAccess(authToken),
+            JwtAuthScheme.DPoP => await _jwtAuth.Validate(authToken, dpopToken, request),
+            JwtAuthScheme.Bearer => await _jwtAuth.Validate(authToken),
             _ => new JwtAuthResult<IJwtResultData> { IsSuccess = false, Error = JwtError.MissingScheme }
         };
 

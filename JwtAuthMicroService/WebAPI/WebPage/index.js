@@ -217,8 +217,22 @@ async function ClickProducts() {
 }
 
 async function ClickLogout() {
-    hideLoader();
-    tokenMgr.clearTokens();
+    clearOutput();
+    showLoader();
+    try {
+        const rt = tokenMgr.getRefreshToken();
+        const res = await apiMgr.tokenApi.post("/logout", {
+            refreshToken: rt,
+        });
+        console.log(`[Logout] Logged out, tokens to be cleared!`);
+        showOutput(JSON.stringify(res.data, null, 2));
+    } catch (err) {
+        console.error("[Logout] Failed", err);
+        showOutput("Login failed: " + err);
+    } finally {
+        await tokenMgr.clearTokens();
+        hideLoader();
+    }
 }
 
 function stopCountdown() {

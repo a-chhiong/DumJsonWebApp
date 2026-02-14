@@ -82,17 +82,7 @@ public class JwtAuthService : IJwtAuthService
         };
     }
 
-    public async Task<JwtAuthResult<TokenData>> ValidateAccess(string? token)
-    {
-        return await Validate(token);
-    }
-    
-    public async Task<JwtAuthResult<TokenData>> ValidateRefresh(string? token)
-    {
-        return await Validate(token, true);
-    }
-
-    private async Task<JwtAuthResult<TokenData>> Validate(string? token, bool isNotBefore = false)
+    public async Task<JwtAuthResult<TokenData>> Validate(string? token, bool isNotBefore = false)
     {
         if (string.IsNullOrEmpty(token)) 
             return new JwtAuthResult<TokenData> { IsSuccess = false, Error = JwtError.InvalidToken };
@@ -126,7 +116,7 @@ public class JwtAuthService : IJwtAuthService
         }
     }
 
-    public async Task<JwtAuthResult<DPoPData>> ValidateDPoP(string? token, HttpRequest request)
+    public async Task<JwtAuthResult<DPoPData>> Validate(string? token, HttpRequest request)
     {
         if (string.IsNullOrEmpty(token)) 
             return new JwtAuthResult<DPoPData> { IsSuccess = false, Error = JwtError.InvalidToken };
@@ -172,19 +162,19 @@ public class JwtAuthService : IJwtAuthService
         }
     }
     
-    public async Task<JwtAuthResult<AccessData>> ValidateAccess(string? token, string? dpop, HttpRequest request)
+    public async Task<JwtAuthResult<AccessData>> Validate(string? token, string? dpop, HttpRequest request)
     {   
         // 0. Mandatory Field for AccessToken and DPoPToken
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(dpop))
             return new JwtAuthResult<AccessData> { IsSuccess = false, Error = JwtError.MissingToken };
         
         // 1. Validate the Access Token (The Bearer/DPoP part)
-        var accessResult = await this.ValidateAccess(token);
+        var accessResult = await this.Validate(token);
         if (!accessResult.IsSuccess) 
             return new JwtAuthResult<AccessData> { IsSuccess = false, Error = accessResult.Error };
         
         // 2. Validate the DPoP Proof
-        var dpopResult = await this.ValidateDPoP(dpop, request);
+        var dpopResult = await this.Validate(dpop, request);
         if (!dpopResult.IsSuccess) 
             return new JwtAuthResult<AccessData> { IsSuccess = false, Error = dpopResult.Error };
         var jwk = dpopResult.Data?.Jwk;

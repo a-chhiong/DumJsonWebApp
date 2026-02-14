@@ -44,7 +44,7 @@ public class TokenController: BaseController
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
-    [HttpPut("Refresh")]
+    [HttpPost("Refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
     {
         var result = await _service.Refresh(request.RefreshToken);
