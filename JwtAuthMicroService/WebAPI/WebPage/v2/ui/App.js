@@ -15,12 +15,25 @@ export class App {
         this.container = null;
         this.router = null;
         this.loader = null;
+
+        this._handleEvents();
     }
 
-    /**
-     * onCreate: Synchronous setup (DOM, Listeners)
-     */
-    async onCreate() {
+    _handleEvents() {
+        window.addEventListener('DOMContentLoaded', () => this._onLoaded());
+        window.addEventListener('pagehide', () => this._onPageHide());
+        window.addEventListener('beforeunload', () => this._onUnloading());
+        window.addEventListener('unload', () => this._onUnloaded());
+        document.addEventListener('visibilitychange', () => {
+        document.visibilityState === 'visible' 
+            ? this._onVisible() 
+            : this._onInvisible();
+        });
+    }
+
+    _onLoaded() {
+        console.log("App Shell: onLoaded");
+
         this.container = document.getElementById(this.containerId);
         this.router = new Router(this.container, [LaunchView, LoginView, HomeView]);
         this.loader = document.getElementById('app-loader');
@@ -32,65 +45,71 @@ export class App {
             }
         });
 
-        console.log("App Shell: Created");
+        this._handleInit();
+    }
+
+    _onVisible() { 
+        console.log("App Shell: onVisible");
+    }
+
+    _onInvisible() { 
+        console.log("App Shell: onInvisible");
+    }
+
+    _onPageHide() { 
+        console.log("App Shell: onPageHide");
+    }
+
+    _onUnloading() { 
+        console.log("App Shell: onUnloading");
+    }
+
+    _onUnloaded() {
+        console.log("App Shell: onUnloaded");
+        this.router.dispose();
     }
 
     /**
-     * onStart: The Async Boot Sequence
+     * Manager Initialization
      */
-    async onStart() {
+    _handleInit() {
         // 1. Initial Launch View
         this.router.navigate(LaunchView);
-
-        await vaultMgr.init();
-
-        // Assuming sessionMgr exists in your context
-        const startIdx = sessionMgr.init(); 
-    
-        await tokenMgr.init(startIdx); // Passing startIdx if needed
-    
-        await dpopMgr.init(startIdx);
-
-        apiMgr.init();
-
-        // 2. Subscribe to the Auth stream for routing
-        tokenMgr.isAuthenticated$.subscribe(authState => {
-            this.handleRouting(authState);
+        vaultMgr.init()
+        .then(() => {
+            // Step 2: Session Context (Synchronous)
+            return sessionMgr.init();
+        })
+        .then((startIdx) => {
+            // Step 3: Parallel Initialization for speed
+            // Since Token and DPoP are often independent, we can run them together
+            return Promise.all([
+                tokenMgr.init(startIdx),
+                dpopMgr.init(startIdx)
+            ]);
+        })
+        .then(() => {
+            // Step 4: Finalize API
+            apiMgr.init();
+            console.log("[App] System Ready.");
+        })
+        .catch((error) => {
+            // "Crash" handler
+            console.error("[App] Boot Sequence Failed:", error);
+            throw error; 
+        })
+        .finally(() => {
+            // Step 5: Where to go from here
+            tokenMgr.isAuthenticated$.subscribe(authState => {
+                this._handleRouting(authState);
+            });
         });
-                
-        console.log("App Shell: Started");
-    }
-
-    /**
-     * onResume: Tab became visible
-     */
-    onResume() {
-        console.log("App Shell: Resumed");
-    }
-
-    /**
-     * onPause: Tab hidden
-     */
-    onPause() {
-        console.log("App Shell: Paused");
-    }
-
-    /**
-     * onStop / onDestroy: Cleanup
-     */
-    onStop() { 
-        console.log("App Shell: Stopped"); 
-    }
-    
-    onDestroy() {
-        console.log("App Shell: Destroyed");
-        this.router.dispose();
     }
 
     /**
      * Navigation Logic
      */
-    handleRouting({ isAuth }) {
+    _handleRouting({ isAuth }) {
         // The Router handles the lifecycle of swapping
         const targetView = isAuth ? HomeView : LoginView;
         this.router.navigate(targetView);
