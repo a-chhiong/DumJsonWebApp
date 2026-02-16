@@ -1,284 +1,39 @@
-:root {
-    --bg-main: #020617;      /* Deep Slate 950 */
-    --bg-card: #0f172a;      /* Slate 900 */
-    --border: #1e293b;       /* Slate 800 */
-    --accent: #06b6d4;       /* Cyan 500 */
-    --accent-glow: rgba(6, 182, 212, 0.2);
-    --text-dim: #94a3b8;     /* Slate 400 */
-}
-
-/* Base resets for the SPA */
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: var(--bg-main);
-    color: #f8fafc;
-}
-
-/* 1. Launch/Loader Screen (The Initial Boot) */
-.launch-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background-color: var(--bg-main);
-}
-
-.status-message {
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--accent);
-    margin-top: 1.5rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    animation: pulse 2s infinite;
-}
-
-/* 2. Global Loader Overlay (For API calls) */
-.loader-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(2, 6, 23, 0.8);
-    backdrop-filter: blur(4px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top: 3px solid var(--accent);
-    border-radius: 50%;
-    filter: drop-shadow(0 0 8px var(--accent-glow));
-    animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-/* 3. The Dashboard Layout */
-.home-container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.bg-slate-800 {
-    background-color: var(--bg-card) !important;
-    border: 1px solid var(--border) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.bg-slate-800:hover {
-    box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5);
-    transform: translateY(-2px);
-}
-
-/* 4. Financial Card (Glassmorphism) */
-.bg-gradient-to-br {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    position: relative;
-    overflow: hidden;
-}
-
-.bg-gradient-to-br::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-/* 5. Typography & Accents */
-.font-mono {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-}
-
-.text-cyan-400 { color: var(--accent) !important; }
-.text-red-500 { color: #f43f5e !important; }
-
-/* 6. Action Buttons */
-button {
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s active;
-}
-
-button:active {
-    transform: scale(0.95);
-}
-
-/* Animations */
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-/* Utility Grid - For the Data Stream section */
-.grid { display: grid; }
-.gap-6 { gap: 1.5rem; }
-.gap-2 { gap: 0.5rem; }
-
-/* --- Missing Layout Utilities --- */
+/* --- Utility Layout Classes --- */
 .flex { display: flex; }
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }
+.text-right { text-align: right; }
+
+.gap-2 { gap: 0.5rem; }
 .gap-4 { gap: 1rem; }
 .gap-6 { gap: 1.5rem; }
-.gap-2 { gap: 0.5rem; }
 
 .grid { display: grid; }
 @media (min-width: 768px) {
-    .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
 }
 
-.p-6 { padding: 1.5rem; }
 .p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
 .mb-8 { margin-bottom: 2rem; }
+.mt-2 { margin-top: 0.5rem; }
 .mt-8 { margin-top: 2rem; }
 
-/* --- The Visual Polish --- */
-.rounded-full { border-radius: 9999px; }
-.rounded-lg { border-radius: 0.5rem; }
-.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-.shadow-cyan-500\/20 { box-shadow: 0 0 20px rgba(6, 182, 212, 0.2); }
+.min-h-screen { min-height: 100vh; }
 
-/* --- Financial Card Sheen --- */
-.bg-gradient-to-br {
-    background: linear-gradient(135deg, #334155 0%, #0f172a 100%);
-    position: relative;
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+/* --- Loader Overlay (Shoelace doesn’t ship one) --- */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
-/* --- Typography Colors --- */
-.text-slate-400 { color: #94a3b8; }
-.text-slate-500 { color: #64748b; }
-.text-cyan-300 { color: #67e8f9; }
-.bg-cyan-900 { background-color: #164e63; }
-
-/* 1. Main Container: Full screen centering */
-.view-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background: #020617; /* Deep Slate 950 */
-    color: #f1f5f9;
-}
-
-/* 2. Login Card: The vertical stack */
-.login-card {
-    display: flex;
-    flex-direction: column; /* Inputs should stack vertically */
-    width: 100%;
-    max-width: 400px;
-    padding: 2rem;
-    gap: 1.5rem;             /* Consistent spacing between input groups */
-    background: #0f172a;    /* Slate 900 */
-    border: 1px solid #1e293b;
-    border-radius: 1rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-
-/* 3. Input Groups: Vertical label/input pair */
-.input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.input-group label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #94a3b8;
-    letter-spacing: 0.05em;
-}
-
-.input-group input {
-    padding: 0.75rem 1rem;
-    background: #020617;
-    border: 1px solid #334155;
-    border-radius: 0.5rem;
-    color: #e2e8f0;
-    font-family: monospace;
-}
-
-/* 4. Button Container: The horizontal row */
-.button-container {
-    display: flex;
-    flex-direction: row;    /* Buttons stay side-by-side */
-    gap: 12px;
-    margin-top: 1rem;
-}
-
-.button-container button {
-    flex: 1;                /* Make buttons equal width */
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-/* Primary Button State */
-.btn-primary {
-    background: #0891b2; /* Cyan 600 */
-    color: white;
-    border: none;
-}
-
-.btn-primary.loading {
-    opacity: 0.7;
-    cursor: wait;
-}
-
-.btn-bad {
-    background: transparent;
-    border: 1px solid #ef4444;
-    color: #ef4444;
-}
-
-#countdown {
-    display: none;
-    font-size: 24px;          /* bigger text */
-    font-weight: bold;        /* bold */
-    color: transparent;
-    text-align: center;       /* centered */
-    margin-top: 15px;
-    padding: 10px;
-    border: 1px solid #333;   /* visible border */
-    border-radius: 8px;
-    background-color: #f0f0f0;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.input-container {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin: 20px 0;
-}
-
-.input-container label {
-    font-weight: bold;
-}
-
-.input-container input {
-    padding: 6px;
-    width: 180px;
+body, sl-card, sl-input, sl-button, sl-switch {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }

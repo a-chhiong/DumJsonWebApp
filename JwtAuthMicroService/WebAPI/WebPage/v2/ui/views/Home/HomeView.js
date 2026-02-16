@@ -2,11 +2,13 @@ import { BaseView } from '../BaseView.js';
 import { HomeTemplate } from './HomeTemplate.js';
 import { apiMgr } from '../../../managers/ApiManager.js';
 import { tokenMgr } from '../../../managers/TokenManager.js';
+import { themeMgr } from '../../../managers/ThemeManager.js';
 
 export class HomeView extends BaseView {
     constructor(container) {
         super(container);
         this.state = {
+            theme: themeMgr.current,
             user: null,
             remainingTime: -1,
             results: []
@@ -49,7 +51,6 @@ export class HomeView extends BaseView {
             const base64Url = token.split('.')[1]; 
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
             const payload = JSON.parse(window.atob(base64));
-            
             const now = Math.floor(Date.now() / 1000); // Current time in seconds
             return payload.exp - now; // Time remaining
         } catch (e) {
@@ -68,8 +69,7 @@ export class HomeView extends BaseView {
     template() {
         return HomeTemplate(this.state, {
             onLogout: () => this.handleLogout(),
-            onFetchPosts: () => this.handleFetchPosts(),
-            onFetchProducts: () => this.handleFetchProducts()
+            onToggleTheme: (checked) => { this.toggleTheme(checked) },
         });
     }
 
@@ -84,16 +84,8 @@ export class HomeView extends BaseView {
         } catch (err) {
             console.error("[Logout] Failed", err);
         } finally {
-            await tokenMgr.clearTokens();
             this.hideLoader();
+            await tokenMgr.clearTokens();
         }
-    }
-
-    async handleFetchPosts() {
-        // Parallel call logic goes here...
-    }
-
-    async handleFetchProducts() {
-        // Series call logic goes here...
     }
 }

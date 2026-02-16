@@ -7,4 +7,5 @@ export const Config = {
     REFRESH_TOKEN: "REFRESH_TOKEN",
     PUBLIC_KEY: "PUBLIC_KEY",
     PRIVATE_KEY: "PRIVATE_KEY",
+    THEME_MODE: "THEME_MODE"
 };

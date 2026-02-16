@@ -1,62 +1,65 @@
+import { LaunchView } from './views/Launch/LaunchView.js';
+import { LoginView } from './views/Login/LoginView.js';
+import { HomeView } from './views/Home/HomeView.js';
+
 export class Router {
-    constructor(container, viewClasses = []) {
+    constructor(container) {
         this.container = container;
         this.currentView = null;
-        this.routes = {};
-        viewClasses.forEach(VC => {
-            this.routes[VC.routeName] = VC;
+        this.routes = new Map();
+        const vc = [LaunchView, LoginView, HomeView];
+        vc.forEach(v => {
+            this.routes.set(v.routeName, v);
         });
-        this._handleUrlChange();
-        this._bindLinks();
+        this._setupListeners();
     }
 
-    /**
-     * Transition to a new view and manage its full lifecycle.
-     */
-    async navigate(ViewClass) {
+    _setupListeners() {
+        // Like a FragmentManager listening for back-stack changes
+        window.addEventListener('hashchange', () => this._syncToHistory());
+    }
+
+    navigate(routeName) {
+        // Prevent redundant "Fragment Transactions"
+        if (this.currentView?.constructor.routeName === routeName) return;
+
         this.dispose();
-        const slug = ViewClass.routeName;
-        if (window.location.hash !== `#/${slug}`) {
-            window.history.pushState(null, '', `#/${slug}`);
+
+        // Update the "Intent" URL
+        if (window.location.hash !== `#/${routeName}`) {
+            window.location.hash = `#/${routeName}`;
         }
+
+        // Instantiate and Attach the new "Fragment"
+        const ViewClass = this.routes.get(routeName);
         this.currentView = new ViewClass(this.container);
         this.currentView.attach(); 
     }
 
+    toLaunch() {
+        this.navigate(LaunchView.routeName);
+    }
+
+    toHome() {
+        this.navigate(HomeView.routeName);
+    }
+
+    toLogin() {
+        this.navigate(LoginView.routeName);
+    }
+
+    _syncToHistory() {
+        // Extract the slug from #/home -> home
+        const slug = window.location.hash.replace('#/', '') || LaunchView.routeName;
+        const ViewClass = this.routes.get(slug);
+        
+        if (ViewClass) this.navigate(ViewClass.routeName);
+    }
+
     dispose() {
         if (this.currentView) {
-            console.log(`[Router] Disposing: ${this.currentView.constructor.name}`);
             this.currentView.dispose();
+            this.currentView = null;
         }
-    }
-
-    /**
-     * Handles when a user types in the URL or hits "Back"
-     */
-    _handleUrlChange() {
-        window.addEventListener('hashchange', () => {
-            const path = window.location.pathname;
-            const ViewClass = this.routes[path] || this.routes['/login'];
-            
-            if (ViewClass) {
-                // Prevent redundant navigation
-                const currentRoute = this.currentView?.constructor.routeName;
-                if (`/${currentRoute}` !== path) {
-                    this.navigate(ViewClass);
-                }
-            }
-        });
-    }
-
-    _bindLinks() {
-        window.addEventListener('click', e => {
-            const link = e.target.closest('a');
-            if (link && link.href.startsWith(window.location.origin)) {
-                e.preventDefault();
-                const path = link.pathname; // e.g. "/home"
-                const ViewClass = this.routes[path];
-                if (ViewClass) this.navigate(ViewClass);
-            }
-        });
     }
 }

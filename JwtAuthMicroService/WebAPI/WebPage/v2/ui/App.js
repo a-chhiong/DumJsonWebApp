@@ -1,117 +1,113 @@
+import { render, html } from 'html'; // Using your lit-html import
 import { tokenMgr } from '../managers/TokenManager.js';
 import { vaultMgr } from '../managers/VaultManager.js';
 import { dpopMgr } from '../managers/DPoPManger.js';
 import { apiMgr } from '../managers/ApiManager.js';
 import { sessionMgr } from '../managers/SessionManager.js';
-import { LaunchView } from './views/Launch/LaunchView.js';
-import { LoginView } from './views/Login/LoginView.js';
-import { HomeView } from './views/Home/HomeView.js';
 import { Router } from './Router.js';
-
 
 export class App {
     constructor(containerId) {
         this.containerId = containerId;
         this.container = null;
         this.router = null;
-        this.loader = null;
-
-        this._handleEvents();
+        this.loaderElement = null;
+        this._subs = [];
+        this._setupListeners();
     }
 
-    _handleEvents() {
+    _setupListeners() {
         window.addEventListener('DOMContentLoaded', () => this._onLoaded());
-        window.addEventListener('pagehide', () => this._onPageHide());
-        window.addEventListener('beforeunload', () => this._onUnloading());
-        window.addEventListener('unload', () => this._onUnloaded());
+        window.addEventListener('pageshow', (event) => this._onPageShow(event));
+        window.addEventListener('pagehide', (event) => this._onPageHide(event));
         document.addEventListener('visibilitychange', () => {
-        document.visibilityState === 'visible' 
-            ? this._onVisible() 
-            : this._onInvisible();
+            document.visibilityState === 'visible' ? this._onVisible() : this._onInvisible();
         });
     }
 
     _onLoaded() {
-        console.log("App Shell: onLoaded");
-
+        console.log("App: onLoaded");
         this.container = document.getElementById(this.containerId);
-        this.router = new Router(this.container, [LaunchView, LoginView, HomeView]);
-        this.loader = document.getElementById('app-loader');
         
-        // Listen for the events triggered by BaseView's helper methods
-        window.addEventListener('app:loader', (e) => {
-            if (this.loader) {
-                this.loader.style.display = e.detail.show ? 'flex' : 'none';
-            }
-        });
+        // 1. Programmatically create the Global Loader (Clean Body)
+        this._initLoader();
 
-        this._handleInit();
+        // 2. Initialize FragmentManager (Router)
+        this.router = new Router(this.container);
     }
 
-    _onVisible() { 
-        console.log("App Shell: onVisible");
+    _onPageShow(event) {
+        console.log("App: onPageShow");
+
+        // 1. If we are coming back from bfcache, we don't need to re-init managers
+        if (event.persisted) {
+            return; 
+        }
+
+        // 2. Initial Splash Fragment
+        this.router.toLaunch();
+        
+        // 3. Start Managers
+        this._initManagers()
+            .then(() => {
+                // Subscribe to Auth state to handle navigation (Intents)
+                const authSub = tokenMgr.isAuthenticated$.subscribe(o => {
+                    const {isAuth, token} = o;
+                    console.log(`isAuth? ${isAuth}`);
+                    isAuth ? this.router.toHome() : this.router.toLogin();
+                });
+                this._subs.push(authSub);
+            })
+            .catch(err => console.error("System Crash during boot", err));
     }
 
-    _onInvisible() { 
-        console.log("App Shell: onInvisible");
-    }
-
-    _onPageHide() { 
-        console.log("App Shell: onPageHide");
-    }
-
-    _onUnloading() { 
-        console.log("App Shell: onUnloading");
-    }
-
-    _onUnloaded() {
-        console.log("App Shell: onUnloaded");
+    _onPageHide(event) { 
+        console.log("App: onPageHide");
+        // Unsubscribe from RxJS stream (Like removing a Listener in onStop)
+        this._clearSubscriptions();
         this.router.dispose();
     }
 
-    /**
-     * Manager Initialization
-     */
-    _handleInit() {
-        // 1. Initial Launch View
-        this.router.navigate(LaunchView);
-        vaultMgr.init()
-        .then(() => {
-            // Step 2: Session Context (Synchronous)
-            return sessionMgr.init();
-        })
-        .then((startIdx) => {
-            // Step 3: Parallel Initialization for speed
-            // Since Token and DPoP are often independent, we can run them together
-            return Promise.all([
-                tokenMgr.init(startIdx),
-                dpopMgr.init(startIdx)
-            ]);
-        })
-        .then(() => {
-            // Step 4: Finalize API
-            apiMgr.init();
-            console.log("[App] System Ready.");
-        })
-        .catch((error) => {
-            // "Crash" handler
-            console.error("[App] Boot Sequence Failed:", error);
-            throw error; 
-        })
-        .finally(() => {
-            // Step 5: Where to go from here
-            tokenMgr.isAuthenticated$.subscribe(authState => {
-                this._handleRouting(authState);
-            });
+    _clearSubscriptions() {
+        // Equivalent to CompositeDisposable.clear()
+        this._subs.forEach(s => s.unsubscribe());
+        this._subs = [];
+    }
+
+    _initManagers() {
+        return vaultMgr.init()
+            .then(() => sessionMgr.init())
+            .then(idx => Promise.all([tokenMgr.init(idx), dpopMgr.init(idx)]))
+            .then(() => apiMgr.init());
+    }
+
+    _initLoader() {
+        // Creates the loader overlay without cluttering index.html
+        this.loaderElement = document.createElement('div');
+        this.loaderElement.id = 'app-loader';
+        this.loaderElement.className = 'loader-overlay';
+        this.loaderElement.style.display = 'none';
+        
+        // loader template
+        const renderLoader = (message = "Processing...") => html`
+            <div class="spinner"></div>
+            <p>${message}</p>
+        `;
+        // Injecting a simple template via lit-html
+        render(renderLoader(), this.loaderElement);
+
+        document.body.appendChild(this.loaderElement);
+
+        // Listen for EventBus signals to show/hide
+        window.addEventListener('app:loader', (e) => {
+            const { show, message } = e.detail;
+            this.loaderElement.style.display = show ? 'flex' : 'none';
+            if (show && message) {
+                render(renderLoader(message), this.loaderElement);
+            }
         });
     }
 
-    /**
-     * Navigation Logic
-     */
-    _handleRouting({ isAuth }) {
-        // The Router handles the lifecycle of swapping
-        const targetView = isAuth ? HomeView : LoginView;
-        this.router.navigate(targetView);
-    }
+    _onVisible() { console.log("App: onVisible"); }
+    _onInvisible() { console.log("App: onInvisible"); }
 }

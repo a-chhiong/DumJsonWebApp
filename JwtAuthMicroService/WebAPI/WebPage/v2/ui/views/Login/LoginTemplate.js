@@ -1,40 +1,74 @@
 import { html } from 'html';
-import { classMap } from 'class-map';
+import { ThemeMode } from '../../../constants/ThemeMode.js';
 
 export const LoginTemplate = (state, actions) => {
-    const btnClasses = {
-        'btn-primary': true,
-        'loading': state.isLoading
-    };
+  const { theme, username, password, isLoading, error } = state;
+  const isDark = theme === ThemeMode.DARK;
+  const styles = {
+    overlay: `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--sl-spacing-large);
+      background-color: var(--sl-color-neutral-50);
+    `,
+    card: `
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--sl-shadow-x-large);
+    `,
+    form: `
+      display: flex;
+      flex-direction: column;
+      gap: var(--sl-spacing-medium);
+    `
+  };
 
-    return html`
-        <div class="view-container animate-fade">
-            <h2>DummyJSON Demo</h2>
-            <div class="login-card">
-                <div class="input-group">
-                    <label>Username</label>
-                    <input type="text" id="username" 
-                        value="charlottem" 
-                        ?disabled=${state.isLoading}>
-                </div>
-                
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="password" 
-                        value="charlottempass" 
-                        ?disabled=${state.isLoading}>
-                </div>
-
-                ${state.error ? html`<p class="error-msg">${state.error}</p>` : ''}
-
-                <div class="button-container">
-                    <button class=${classMap(btnClasses)} 
-                        ?disabled=${state.isLoading}
-                        @click=${actions.onLogin}>
-                        ${state.isLoading ? 'Authenticating...' : 'Secure Login'}
-                    </button>
-                </div>
-            </div>
+  return html`
+    <div class style="${styles.overlay}">
+      <sl-card style="${styles.card}">
+        <div slot="header" class="flex justify-between items-center">
+          <h2>DummyJSON Demo</h2>
+          <br><br>
+          <sl-switch 
+            ?checked="${isDark}"
+            @sl-change=${e => actions.onToggleTheme(e.target.checked)}>
+            Dark Mode
+          </sl-switch>
         </div>
-    `;
+
+        <div style="${styles.form}">
+          <sl-input 
+            label="Username" 
+            .value=${username} 
+            ?disabled=${isLoading}
+            @sl-change=${e => actions.onUsernameChange(e.target.value)}>
+          </sl-input>
+
+          <sl-input 
+            label="Password" 
+            type="password" 
+            .value=${password} 
+            ?disabled=${isLoading}
+            @sl-change=${e => actions.onPasswordChange(e.target.value)}>
+          </sl-input>
+          
+          ${error ? html`<sl-alert variant="danger" open>${error}</sl-alert>` : ''}
+          
+        </div>
+
+        <div slot="footer">
+          <sl-button 
+            variant="primary" 
+            ?disabled=${isLoading} 
+            ?loading=${isLoading}
+            @click=${actions.onLogin}>
+            Secure Login
+          </sl-button>
+        </div>
+        
+      </sl-card>
+    </div>
+  `;
 };

@@ -16,14 +16,20 @@
     </script>
     <base href="/web/v2/">
     <script type="module" src="./index.js"></script>
+    <link rel="stylesheet" href="./styles/main.css" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👽</text></svg>">
-    <link rel="stylesheet" href="./styles/main.css">
+    
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
+    <link id="shoelace-theme-light"
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css">
+    <link id="shoelace-theme-dark"
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css"
+      disabled>
+
 </head>
 <body>
-    <div id="app-loader" class="loader-overlay" style="display: none;">
-        <div class="spinner"></div>
-        <p>Processing...</p>
-    </div>
     <div id="app-root"></div>    
 </body>
 </html>

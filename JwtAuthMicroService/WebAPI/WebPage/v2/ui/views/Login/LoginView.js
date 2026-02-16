@@ -2,49 +2,50 @@ import { BaseView } from '../BaseView.js';
 import { LoginTemplate } from './LoginTemplate.js';
 import { apiMgr } from '../../../managers/ApiManager.js';
 import { tokenMgr } from '../../../managers/TokenManager.js';
+import { themeMgr } from '../../../managers/ThemeManager.js';
 
 export class LoginView extends BaseView {
-    constructor(container) {
-        super(container);
-        this.state = {
-            isLoading: false,
-            error: null
-        };
+  constructor(container) {
+    super(container);
+    this.state = {
+        theme: themeMgr.current,
+        username: 'charlottem',
+        password: 'charlottempass',
+        isLoading: false,
+        error: null
+    };
+  }
+
+  async performLogin() {
+    const { username, password } = this.state;
+
+    this.state.isLoading = true;
+    this.state.error = null;
+    this.updateView();
+
+    try {
+      const res = await apiMgr.tokenApi.post("/login", { username, password });
+      const { accessToken, refreshToken } = res.data;
+
+      await tokenMgr.saveTokens(accessToken, refreshToken);
+
+      // Clear loading state once tokens are saved
+      this.state.isLoading = false;
+      this.updateView();
+
+    } catch (err) {
+        this.state.error = err.response?.data?.message || err.message || "Login Failed";
+        this.state.isLoading = false;
+        this.updateView();
     }
+  }
 
-    // This is the logic internal to the Login screen
-    async performLogin() {
-        const username = this.container.querySelector('#username').value;
-        const password = this.container.querySelector('#password').value;
-
-        this.state.isLoading = true;
-        this.state.error = null;
-        this.updateView(); // Re-render to show loading state
-
-        try {
-            const res = await apiMgr.tokenApi.post("/login", {
-                username,
-                password
-            });
-
-            const { accessToken, refreshToken } = res.data;
-            
-            // Save via the secure TokenManager (which uses VaultManager)
-            await tokenMgr.saveTokens( accessToken, refreshToken);
-            
-            // Note: We don't need to manually switch views here. 
-            // App.js is subscribed to tokenMgr.isAuthenticated$ and will handle it!
-            
-        } catch (err) {
-            this.state.error = err.response?.data?.message || "Login Failed";
-            this.state.isLoading = false;
-            this.updateView();
-        }
-    }
-
-    template() {
-        return LoginTemplate(this.state, {
-            onLogin: () => this.performLogin(true)
-        });
-    }
+  template() {
+    return LoginTemplate(this.state, {
+        onLogin: () => this.performLogin(),
+        onToggleTheme: (checked) => { this.toggleTheme(checked) },
+        onUsernameChange: (val) => { this.state.username = val; },
+        onPasswordChange: (val) => { this.state.password = val; },
+    });
+  }
 }
