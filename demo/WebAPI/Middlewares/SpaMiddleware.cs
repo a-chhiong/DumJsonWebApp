@@ -18,7 +18,7 @@ public class SpaMiddleware
         var path = context.Request.Path.Value ?? "";
         
         // Root fallback
-        if (path == "/" || path == "/web" || path == "/web/")
+        if (path is "/" or "/web" or "/web/")
         {
             await Redirect(context);
             return;

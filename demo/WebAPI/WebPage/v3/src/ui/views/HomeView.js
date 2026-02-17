@@ -19,18 +19,25 @@ export class HomeView extends LitElement {
         .grid-layout {
             display: grid;
             gap: var(--sl-spacing-large);
-            /* 1. Default for Mobile: Force exactly 2 columns */
-            grid-template-columns: repeat(2, 1fr);
+            /* 1. Base Strategy (Mobile First): Exactly 1 column */
+            grid-template-columns: 1fr;
         }
 
-        /* 2. Tablet-ish: Move to 3 columns if space allows */
+        /* 2. Small Tablets / Large Phones: 2 columns */
+        @media (min-width: 600px) {
+            .grid-layout {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* 3. Standard Tablet/Laptop: 3 columns */
         @media (min-width: 900px) {
             .grid-layout {
                 grid-template-columns: repeat(3, 1fr);
             }
         }
 
-        /* 3. Desktop: Cap at 4 columns */
+        /* 4. Desktop: Cap at 4 columns */
         @media (min-width: 1200px) {
             .grid-layout {
                 grid-template-columns: repeat(4, 1fr);
