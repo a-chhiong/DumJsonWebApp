@@ -15,18 +15,19 @@ public class SpaMiddleware
     
     public async Task InvokeAsync(HttpContext context)
     {
+        var path = context.Request.Path.Value ?? "";
+        
         // Root fallback
-        if (context.Request.Path == "/")
+        if (path == "/" || path == "/web" || path == "/web/")
         {
             await Redirect(context);
             return;
         }
     
         // Only handle requests starting with /Web
-        if (context.Request.Path.StartsWithSegments("/web", StringComparison.OrdinalIgnoreCase))
-        {
-            var path = context.Request.Path.Value ?? string.Empty;
-            var filePath = Path.Combine(_env.ContentRootPath, "WebPage", "v2", path.TrimStart('/'));
+        if (path.StartsWith("/web", StringComparison.OrdinalIgnoreCase))
+        {   
+            var filePath = Path.Combine(_env.ContentRootPath, "WebPage", "v3", path.TrimStart('/'));
 
             // If the requested file does not exist, serve index.html
             if (!File.Exists(filePath) && !Directory.Exists(filePath))
@@ -43,6 +44,6 @@ public class SpaMiddleware
     {
         context.Response.ContentType = "text/html";
         await context.Response.SendFileAsync(
-            Path.Combine(_env.ContentRootPath, "WebPage", "v2", "index.html"));
+            Path.Combine(_env.ContentRootPath, "WebPage", "v3", "index.html"));
     }
 }

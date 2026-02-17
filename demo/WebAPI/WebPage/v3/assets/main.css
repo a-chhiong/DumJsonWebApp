@@ -1,0 +1,94 @@
+/**
+ * 1. THE CLOAK 
+ * We use 'display: none' or 'visibility: hidden' to ensure the 
+ * browser doesn't try to paint an unstyled component.
+ */
+app-shell:not([resolved]) {
+    display: none;
+}
+
+app-shell[resolved] {
+    display: block;
+    opacity: 1;
+    transition: opacity 0.5s ease-in;
+}
+
+/**
+ * 2. THE DUAL-LAYER FALLBACK
+ * Layer 1: A hardcoded hex color. This is the only way to be 100% 
+ * flicker-proof because it doesn't rely on variables or JS.
+ */
+html {
+    /* A neutral "loading" gray that looks okay in both light/dark */
+    background-color: #1a1a1a; 
+    height: 100%;
+}
+
+/**
+ * Layer 2: Transition to Shoelace Variables.
+ * Once ThemeManager tags the HTML and Shoelace CSS loads,
+ * we switch to the actual design system tokens.
+ */
+html.sl-theme-light {
+    background-color: #ffffff; /* Hardcoded fallback */
+    background-color: var(--sl-color-neutral-0); 
+}
+
+html.sl-theme-dark {
+    background-color: #1a1a1a; /* Hardcoded fallback */
+    background-color: var(--sl-color-neutral-0);
+}
+
+/**
+ * 3. THE REVEAL
+ * Smoothly fade in the app once index.js calls setAttribute('resolved')
+ */
+app-shell[resolved] {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* --- Utility Layout Classes --- */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.text-right { text-align: right; }
+
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+
+.grid { display: grid; }
+@media (min-width: 768px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-8 { margin-top: 2rem; }
+
+.min-h-screen { min-height: 100vh; }
+
+/* --- Loader Overlay (Shoelace doesn’t ship one) --- */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+body, sl-card, sl-input, sl-button, sl-switch {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
