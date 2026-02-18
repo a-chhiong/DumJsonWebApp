@@ -17,24 +17,21 @@ public class SpaMiddleware
     {
         var path = context.Request.Path.Value ?? "";
         
-        // Root fallback
-        if (path is "/" or "/web" or "/web/")
+        // API Route
+        if (path.StartsWith("/api", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(context);
+            return;
+        }
+        
+        // Only handle requests starting with /web
+        var filePath = Path.Combine(_env.ContentRootPath, "web", path.TrimStart('/'));
+
+        // If the requested file does not exist, serve index.html
+        if (!File.Exists(filePath) && !Directory.Exists(filePath))
         {
             await Redirect(context);
             return;
-        }
-    
-        // Only handle requests starting with /Web
-        if (path.StartsWith("/web", StringComparison.OrdinalIgnoreCase))
-        {   
-            var filePath = Path.Combine(_env.ContentRootPath, "WebPage", path.TrimStart('/'));
-
-            // If the requested file does not exist, serve index.html
-            if (!File.Exists(filePath) && !Directory.Exists(filePath))
-            {
-                await Redirect(context);
-                return;
-            }
         }
 
         await _next(context);
