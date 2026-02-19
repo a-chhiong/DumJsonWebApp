@@ -34,6 +34,11 @@
       </None>
     </ItemGroup>
 
+    <Target Name="CleanWebPageOutput" BeforeTargets="BeforeBuild">
+        <Message Importance="high" Text="Cleaning old WebPage output files..." />
+        <RemoveDir Directories="$(OutputPath)WebPage" />
+    </Target>
+    
     <ItemGroup>
         <!-- Include all files from your Web folder -->
         <Content Include="WebPage\**\*.*">
