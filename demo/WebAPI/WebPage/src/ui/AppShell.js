@@ -4,6 +4,11 @@ import { tokenManager } from '../managers/TokenManager.js';
 import { LifecycleHub } from '../helpers/LifecycleHub.js';
 import { Router } from './Router.js';
 
+// KEPP ALL CHILD VIEW TO IMPORT FOR REFERENCE!
+import './views/LaunchView.js';
+import './views/LoginView.js';
+import './views/HomeView.js';
+
 export class AppShell extends LitElement {
     static styles = css`
         :host { display: block; height: 100vh; width: 100vw; }

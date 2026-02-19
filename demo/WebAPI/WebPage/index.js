@@ -9,6 +9,7 @@ import { tokenManager } from './src/managers/TokenManager.js';
 import { dpopManager } from './src/managers/DPoPManger.js';
 import { apiManager } from './src/managers/ApiManager.js';
 
+// KEPP AppShell TO IMPORT FOR REFERENCE!
 import './src/ui/AppShell.js';
 
 /**
