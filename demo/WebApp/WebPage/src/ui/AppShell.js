@@ -21,7 +21,7 @@ export class AppShell extends LitElement {
             // skip(1) // Optional: Use if you only want to react to *changes* after load
             distinctUntilChanged((prev, curr) => prev?.isAuth === curr?.isAuth)
         ).subscribe(state =>{ 
-            console.debug(`[AppSheel] auth:`, state);
+            console.debug(`[AppShell] auth:`, state);
             this._handleAuthRouting(state)
         });
         
