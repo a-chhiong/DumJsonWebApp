@@ -106,6 +106,7 @@ export class ProfileHeader extends LitElement {
         if (!this.user) return html``;
         
         const isSessionExpired = this.sessionLeft <= 0;
+        const isReloadDisabled = this.accessLeft > 0;
 
         return html`
             <header class="header">
@@ -141,6 +142,7 @@ export class ProfileHeader extends LitElement {
                             circle 
                             outline 
                             title="Reload Page"
+                            ?disabled=${isReloadDisabled}
                             @click=${this._handleReloadClick}>
                             <sl-icon name="arrow-repeat"></sl-icon>
                         </sl-button>

@@ -5,6 +5,8 @@
  */
 export class LifecycleHub {
     constructor(host, source$, initialValue = null) {
+        if (!host) throw new Error(`[${this.constructor.name}] must be initialized with a 'host' (this)`);
+        
         this.host = host;
         this.source$ = source$;
         this.value = initialValue;
@@ -39,11 +41,9 @@ export class LifecycleHub {
 
         this._subscription = this.source$.subscribe({
             next: (val) => {
-                console.log(`[LifecycleHub] next:`, val);
                 if (this.value !== val) {
                     this.value = val;
                     this.host.requestUpdate();
-                    console.log(`[LifecycleHub] requestUpdate!`);
                 }
             },
             error: (err) => console.error(`[LifecycleHub] Stream Error:`, err)

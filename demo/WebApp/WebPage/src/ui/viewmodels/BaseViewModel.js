@@ -18,11 +18,11 @@ export class BaseViewModel {
     // --- Lit Controller Interface ---
     
     hostConnected() {
-        console.debug(`[${this.constructor.name}] hostConnected`); 
+        console.debug(`[${this.constructor.name}] hostConnected!`); 
     }
 
     hostDisconnected() {
-        console.debug(`[${this.constructor.name}] hostDisconnected`); 
+        console.debug(`[${this.constructor.name}] hostDisconnected!`); 
         // Automatic cleanup of all RxJS streams tied to this ViewModel
         this.destroy$.next();
         this.destroy$.complete();

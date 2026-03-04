@@ -1,11 +1,9 @@
 import { LitElement, html, css } from 'lit';
+import { apiManager } from '../managers/ApiManager.js';
 import { themeManager } from '../managers/ThemeManager.js';
 import { tokenManager } from '../managers/TokenManager.js';
 import { LifecycleHub } from '../helpers/LifecycleHub.js';
 import { Router } from './Router.js';
-
-import { distinctUntilChanged, skip } from 'rxjs';
-import { apiManager } from '../managers/ApiManager.js';
 
 export class AppShell extends LitElement {
     constructor() {
@@ -70,23 +68,24 @@ export class AppShell extends LitElement {
         }
     `;
 
-    /**
-     * Replaces Android's onStart.
-     */
     connectedCallback() {
         super.connectedCallback();
+        console.debug(`[AppShell] connectedCallback!`);
+
         this._setupSystemListeners();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        console.debug(`[AppShell] disconnectedCallback!`);
     }
 
     /**
      * The first time the UI is actually ready (Shadow DOM is accessible).
      */
     firstUpdated() {
-        console.debug(`[AppShell] firstUpdated`);
+        console.debug(`[AppShell] firstUpdated!`);
+
         const outlet = this.shadowRoot.getElementById('outlet');
         this.router = new Router(outlet);
         
@@ -122,10 +121,6 @@ export class AppShell extends LitElement {
             this.alert = { show: true, ...e.detail };
             this.requestUpdate();
         });
-    }
-
-    updated(changedProperties) {
-        console.debug('[AppShell] updated:', changedProperties);
     }
 
     _handleAuthRouting(authState) {

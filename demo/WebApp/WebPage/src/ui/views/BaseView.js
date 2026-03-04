@@ -19,12 +19,21 @@ export class BaseView extends LitElement {
      */
     connectedCallback() {
         super.connectedCallback();
-        
+        console.debug(`[${this.constructor.name}] connectedCallback!`);
         if (this.viewModel && !(this.viewModel instanceof BaseViewModel)) {
             console.error(
                 `[Architecture Error]: ${this.constructor.name}.viewModel must be an instance of BaseViewModel.`
             );
         }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        console.debug(`[${this.constructor.name}] disconnectedCallback!`);
+    }
+
+    firstUpdated() {
+        console.debug(`[${this.constructor.name}] firstUpdated!`);
     }
 
     /**
