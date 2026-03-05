@@ -8,7 +8,7 @@ public class JwtAuthEnvironmentOption
     public string PrivateKey { get; init; }
     public string PublicKey { get; init; }
     public long AccessExpiryInSeconds { get; init; } = 1 * 60;
-    public long RefreshExpiryInSeconds { get; init; } = 10 * 60;
+    public long RefreshExpiryInSeconds { get; init; } = 5 * 60;
     public long RefreshNotBeforeInSeconds { get; init; } = 1 * 30;
     public long ClockSkewInSeconds { get; init; } = 5 * 60;
 }
