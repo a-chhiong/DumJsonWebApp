@@ -7,12 +7,13 @@ import { Identity } from '../constants/Identity.js';
 
 class VaultManager {
     constructor() {
+        this._isInitialised = false;
+        this._db = null;
         this._dbName = `${Identity.APP_SCHEM}db`;
         this._keyStore = `${Identity.APP_SCHEM}keys`;    // structured-clone CryptoKeys
-        this._storeName = `${Identity.APP_SCHEM}vault`;  // encrypted strings
-        this._masterName = `${Identity.APP_SCHEM}MASTER`;
-        this._db = null;
+        this._valueStore = `${Identity.APP_SCHEM}values`;  // encrypted strings
         this._masterKey = null;
+        this._masterId = `${Identity.APP_SCHEM}MASTER`;
         this._rotationPromise = null;
     }
 
@@ -23,7 +24,7 @@ class VaultManager {
             const request = indexedDB.open(this._dbName, 1);
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
-                if (!db.objectStoreNames.contains(this._storeName)) db.createObjectStore(this._storeName);
+                if (!db.objectStoreNames.contains(this._valueStore)) db.createObjectStore(this._valueStore);
                 if (!db.objectStoreNames.contains(this._keyStore)) db.createObjectStore(this._keyStore);
             };
             request.onsuccess = (e) => resolve(e.target.result);
@@ -31,15 +32,13 @@ class VaultManager {
         });
 
         await this._prepareKey();
+
+        this._isInitialised = true;
     }
 
     async _prepareKey() {
         // Try to load existing master key
-        const tx = this._db.transaction(this._keyStore, "readonly");
-        const existingKey = await new Promise((res) => {
-            const req = tx.objectStore(this._keyStore).get(this._masterName);
-            req.onsuccess = () => res(req.result);
-        });
+        const existingKey = await this._loadKey(this._masterId);
         if (existingKey) {
             this._masterKey = existingKey;
         } else {
@@ -50,15 +49,15 @@ class VaultManager {
                 ["encrypt", "decrypt"]
             );
             // Store the key object (not raw bytes) in IndexedDB
-            const saveTx = this._db.transaction(this._keyStore, "readwrite");
-            saveTx.objectStore(this._keyStore).put(this._masterKey, this._masterName);
+            await this._saveKey(this._masterId, this._masterKey);
         }
     }
 
     /**
      * A helper to ensure we aren't currently middle-rotation.
      */
-    async _guard() {
+    async _assertReady() {
+        if (!this._isInitialised) throw new Error("[VaultManager] Not initialized.");
         if (this._rotationPromise) await this._rotationPromise;
     }
 
@@ -73,31 +72,29 @@ class VaultManager {
         // Create the promise and store it
         this._rotationPromise = (async () => {
             try {
-                await this.init();
                 const newKey = await crypto.subtle.generateKey(
                     { name: "AES-GCM", length: 256 },
                     false,
                     ["encrypt", "decrypt"]
                 );
 
-                const tx = this._db.transaction(this._storeName, "readonly");
+                const tx = this._db.transaction(this._valueStore, "readonly");
                 const ids = await new Promise(res => {
-                    const req = tx.objectStore(this._storeName).getAllKeys();
+                    const req = tx.objectStore(this._valueStore).getAllKeys();
                     req.onsuccess = () => res(req.result);
                 });
 
                 for (const id of ids) {
                     // We load with the current/old masterKey
-                    const data = await this.load(id);
+                    const data = await this._load(id);
                     if (data) {
                         // Re-encrypt with the NEW key using the fixed blob format
-                        await this._saveWithKey(id, data, newKey);
+                        await this._save(id, data, newKey);
                     }
                 }
 
-                const keyTx = this._db.transaction(this._keyStore, "readwrite");
-                keyTx.objectStore(this._keyStore).put(newKey, this._masterName);
-
+                await this._saveKey(this._masterId, newKey);
+                
                 this._masterKey = newKey;
                 console.log("Rotation complete.");
             } finally {
@@ -109,37 +106,35 @@ class VaultManager {
         return this._rotationPromise;
     }
 
-    /**
-     * Internal helper to save data with a specific key 
-     * (Prevents race conditions during rotation)
-     */
-    async _saveWithKey(id, data, key) {
+    // === String data (tokens, or anything sensitive) ===
+
+    async save(id, data) {
+        await this._assertReady();
+        await this._save(id, data, this._masterKey);
+    }
+
+    async _save(id, data, key) {
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const encoded = new TextEncoder().encode(data);
         const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
         const blob = { iv, data: ciphertext };
-        const tx = this._db.transaction(this._storeName, "readwrite");
+        const tx = this._db.transaction(this._valueStore, "readwrite");
         return new Promise((res, rej) => {
-            const req = tx.objectStore(this._storeName).put(blob, id);
+            const req = tx.objectStore(this._valueStore).put(blob, id);
             req.onsuccess = () => res();
             req.onerror = () => rej(req.error);
         });
     }
 
-    // === String data (tokens) ===
-
-    async save(id, data) {
-        await this._guard();
-        await this.init();
-        return this._saveWithKey(id, data, this._masterKey);
+    async load(id) {
+        await this._assertReady();
+        return await this._load(id);
     }
 
-    async load(id) {
-        if (!this._rotationPromise) await this._guard();
-        await this.init();
-        const tx = this._db.transaction(this._storeName, "readonly");
+    async _load(id) {
+        const tx = this._db.transaction(this._valueStore, "readonly");
         const blob = await new Promise((res) => {
-            const req = tx.objectStore(this._storeName).get(id);
+            const req = tx.objectStore(this._valueStore).get(id);
             req.onsuccess = () => res(req.result);
         });
         if (!blob) return null;
@@ -152,50 +147,52 @@ class VaultManager {
     }
 
     async exists(id) {
-        await this._guard();
-        await this.init();
-        const tx = this._db.transaction(this._storeName, "readonly");
+        await this._assertReady();
+        const tx = this._db.transaction(this._valueStore, "readonly");
         const count = await new Promise((res) => {
-            const req = tx.objectStore(this._storeName).count(id);
+            const req = tx.objectStore(this._valueStore).count(id);
             req.onsuccess = () => res(req.result);
         });
         return count > 0;
     }
 
-    async clear(id) {
-        await this._guard();
-        await this.init();
-        const tx = this._db.transaction(this._storeName, "readwrite");
-        tx.objectStore(this._storeName).delete(id);
+    async delete(id) {
+        await this._assertReady();
+        const tx = this._db.transaction(this._valueStore, "readwrite");
+        tx.objectStore(this._valueStore).delete(id);
     }
 
     // === CryptoKey objects (DPoP keys) ===
 
-    async saveCryptoKey(keyId, cryptoKey) {
-        await this._guard();
-        await this.init();
+    async saveKey(keyId, keyData) {
+        await this._assertReady();
+        await this._saveKey(keyId, keyData);
+    }
+
+    async _saveKey(keyId, keyData) {
         const tx = this._db.transaction(this._keyStore, "readwrite");
         return new Promise((res, rej) => {
-            const req = tx.objectStore(this._keyStore).put(cryptoKey, keyId);
+            const req = tx.objectStore(this._keyStore).put(keyData, keyId);
             req.onsuccess = () => res();
             req.onerror = () => rej(req.error);
         });
     }
 
-    async loadCryptoKey(keyId) {
-        await this._guard();
-        await this.init();
+    async loadKey(keyId) {
+        await this._assertReady();
+        return await this._loadKey(keyId);
+    }
+
+    async _loadKey(keyId) {
         const tx = this._db.transaction(this._keyStore, "readonly");
         return new Promise((res, rej) => {
             const req = tx.objectStore(this._keyStore).get(keyId);
             req.onsuccess = () => res(req.result || null);
-            req.onerror = () => rej(req.error);
         });
     }
 
-    async deleteCryptoKey(keyId) {
-        await this._guard();
-        await this.init();
+    async deleteKey(keyId) {
+        await this._assertReady();
         const tx = this._db.transaction(this._keyStore, "readwrite");
         return new Promise((res, rej) => {
             const req = tx.objectStore(this._keyStore).delete(keyId);

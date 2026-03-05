@@ -1,4 +1,3 @@
-// src/managers/ThemeManager.js
 import { BehaviorSubject } from 'rxjs';
 import { Theme } from '../constants/Theme.js';
 import { Identity } from '../constants/Identity.js';

@@ -8,14 +8,6 @@ class DPoPManager {
     constructor() {
         this._currentIdx = 0;
         this._sessionKeys = []; // RAM cache: { index: { privateKey, publicKey, publicJwk } }
-
-        // Initialize Subject with a default state
-        this._keySubject = new BehaviorSubject({ isReady: false, jwk: null });
-        // Expose the observable immediately so UI can subscribe anytime
-        this.isKeyReady$ = this._keySubject.asObservable().pipe(
-            distinctUntilChanged((prev, curr) => prev.jwk === curr.jwk)
-        );
-
         this._initPromise = null;
         this._isInitialised = false;
         this._hydratingSlots = new Map(); // Track active hydration per index
@@ -26,18 +18,18 @@ class DPoPManager {
         if (this._initPromise) return this._initPromise;
         this._currentIdx = startIndx;
         this._initPromise = (async () => {
-        try {
-            // Hydrate all slots into RAM at boot
-            const indices = Array.from({ length: Session.MAX_COUNT }, (_, i) => i);
-            await Promise.all(indices.map(i => this._hydrate(i)));
-            await this._shouldCreateKeyPair();
-            console.debug(`[DPoPManager] Initialized at index ${this._currentIdx}`);
-        } catch (err) {
-            this._initPromise = null;
-            throw err;
-        } finally {
-            this._isInitialised = true;
-        }
+            try {
+                // Hydrate all slots into RAM at boot
+                const indices = Array.from({ length: Session.MAX_COUNT }, (_, i) => i);
+                await Promise.all(indices.map(i => this._hydrate(i)));
+                await this._shouldCreateKeyPair();
+                console.debug(`[DPoPManager] Initialized at index ${this._currentIdx}`);
+            } catch (err) {
+                this._initPromise = null;
+                throw err;
+            } finally {
+                this._isInitialised = true;
+            }
         })();
 
         stateHub.watch('KEY_SYNC').subscribe(async (data) => {
@@ -56,8 +48,8 @@ class DPoPManager {
 
     async _loadKeys(idx) {
         return await Promise.all([
-            vaultManager.loadCryptoKey(`${Identity.APP_SCHEM}PUBLIC[${idx}]`),
-            vaultManager.loadCryptoKey(`${Identity.APP_SCHEM}PRIVATE[${idx}]`)
+            vaultManager.loadKey(`${Identity.APP_SCHEM}PUBLIC[${idx}]`),
+            vaultManager.loadKey(`${Identity.APP_SCHEM}PRIVATE[${idx}]`)
         ]);
     }
 
@@ -80,7 +72,6 @@ class DPoPManager {
                     }
                 }
                 this._sessionKeys[idx] = (priv && pub) ? { privateKey: priv, publicKey: pub, publicJwk } : null;
-                if (idx === this._currentIdx) this._updateKeyState();
             } catch (e) {
                 console.error(`[DPoPManager] Hydration error for slot ${idx}`, e);
             } finally {
@@ -100,31 +91,23 @@ class DPoPManager {
             return;
         }
         console.debug(`[DPoPManager] No keys found for slot ${idx}, generating new pair...`);
-        const kp = await this._generateKeyPair();
-        const publicJwk = await this._loadJwk(kp.publicKey);
 
-        this._sessionKeys[idx] = { privateKey: kp.privateKey, publicKey: kp.publicKey, publicJwk };
-
-        await this._saveKeys(idx, kp.privateKey, kp.publicKey);
-        
-        stateHub.cast('KEY_SYNC', { type: 'ROTATE', idx });
-        console.debug(`[DPoPManager] Key init complete for index ${idx}`);
+        await this._rotateKey();
     }
 
     _assertReady() {
         if (!this._isInitialised) throw new Error("[DPoPManager] Not initialized.");
-        if (this._hydratingSlots.has(this._currentIdx)) throw new Error(`[DPoPManager] Slot ${this._currentIdx} is re-hydrating.`);
+        if (this._hydratingSlots.has(this._currentIdx)) throw new Error(`[DPoPManager] Slot ${this._currentIdx} is hydrating.`);
     }
 
     _getKeyPair() {
-        this._assertReady();
         return this._sessionKeys[this._currentIdx] || null;
     }
 
     async _saveKeys(idx, priv, pub) {
         await Promise.all([
-            vaultManager.saveCryptoKey(`${Identity.APP_SCHEM}PUBLIC[${idx}]`, priv),
-            vaultManager.saveCryptoKey(`${Identity.APP_SCHEM}PRIVATE[${idx}]`, pub)
+            vaultManager.saveKey(`${Identity.APP_SCHEM}PUBLIC[${idx}]`, priv),
+            vaultManager.saveKey(`${Identity.APP_SCHEM}PRIVATE[${idx}]`, pub)
         ]);
     }
 
@@ -136,8 +119,7 @@ class DPoPManager {
         );
     }
 
-    async rotateKey() {
-        this._assertReady();
+    async _rotateKey() {
         const idx = this._currentIdx;
 
         // Generate a new EC key pair
@@ -156,13 +138,13 @@ class DPoPManager {
         stateHub.cast('KEY_SYNC', { type: 'ROTATE', idx });
         console.debug(`[DPoPManager] Key rotation complete for index ${idx}`);
 
-        this._updateKeyState();
+        return this._sessionKeys[idx];
     }
 
     async _clearKeys(idx) {
         await Promise.all([
-            vaultManager.saveCryptoKey(`${Identity.APP_SCHEM}PUBLIC[${idx}]`),
-            vaultManager.saveCryptoKey(`${Identity.APP_SCHEM}PRIVATE[${idx}]`)
+            vaultManager.deleteKey(`${Identity.APP_SCHEM}PUBLIC[${idx}]`),
+            vaultManager.deleteKey(`${Identity.APP_SCHEM}PRIVATE[${idx}]`)
         ]);
     }
 
@@ -175,19 +157,10 @@ class DPoPManager {
             await this._clearKeys(idx);
             stateHub.cast('KEY_SYNC', { type: 'CLEAR', idx });
             console.debug(`[DPoPManager] Clearance confirmed for index ${idx}`);
-            this._updateKeyState();
         } catch (err) {
             this._sessionKeys[idx] = was;
             throw new Error("Failed to clear keys safely from Vault.");
         }
-    }
-
-    _updateKeyState() {
-        const current = this._sessionKeys[this._currentIdx];
-        this._keySubject.next({
-            isReady: !!current?.privateKey,
-            jwk: current?.publicJwk || null
-        });
     }
 
     // For initial token request (no ATH)
@@ -203,9 +176,8 @@ class DPoPManager {
     }
 
     async _createProof(htm, htu, ath) {
-        const kp = this._getKeyPair();
-        if (!kp) throw new Error("No DPoP key pair available.");
-
+        const kp = this._getKeyPair() ?? await this._rotateKey();
+        
         const header = {
             alg: "ES256",
             typ: "dpop+jwt",
@@ -238,7 +210,6 @@ class DPoPManager {
         bytes.forEach(b => binary += String.fromCharCode(b));
         return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
     }
-
 }
 
 export const dpopManager = new DPoPManager();

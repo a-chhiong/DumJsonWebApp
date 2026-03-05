@@ -1,33 +1,31 @@
 import { LitElement, html, css } from 'lit';
+import { Subject, takeUntil, filter } from 'rxjs';
 import { apiManager } from '../managers/ApiManager.js';
-import { themeManager } from '../managers/ThemeManager.js';
 import { tokenManager } from '../managers/TokenManager.js';
-import { LifecycleHub } from '../helpers/LifecycleHub.js';
 import { Router } from './Router.js';
 
 export class AppShell extends LitElement {
     constructor() {
         super();
         this.router = null;
-        
-        // LifecycleHubs: attach() on connect, detach() on disconnect
-        this.theme = new LifecycleHub(this, themeManager.theme$);
-        this.tokenAuth = new LifecycleHub(this, tokenManager.isAuthenticated$);
-        this.apiAuth = new LifecycleHub(this, apiManager.isAuthenticated$);
-
-        // 2. Reactive Side Effects (For Logic)
-        // We listen to the source$ directly. No need for updated() or _lastAuthState.
-        this.tokenAuth.source$.subscribe(state =>{ 
-            console.debug(`[AppShell] token auth:`, state);
-            this._handleAuthRouting(state)
-        });
-        this.apiAuth.source$.subscribe(state =>{ 
-            console.debug(`[AppShell] api auth:`, state);
-            this._handleAuthRouting(state)
-        });
-        
         this.loading = { show: false, message: 'Processing...' };
         this.alert = { show: false, title: '', message: '' };
+
+        this._onLoader = (e) => {
+            this.loading = e.detail;
+            this.requestUpdate();
+        };
+
+        this._onDialog = (e) => {
+            this.alert = { show: true, ...e.detail };
+            this.requestUpdate();
+        };
+
+        this._onVisibility = () => {
+            console.log(document.visibilityState === 'visible' ? "[AppShell] Visible" : "[AppShell] Invisible");
+        };
+
+        this._destroy$ = new Subject(); // The "Kill Switch"
     }
 
     static styles = css`
@@ -72,12 +70,17 @@ export class AppShell extends LitElement {
         super.connectedCallback();
         console.debug(`[AppShell] connectedCallback!`);
 
-        this._setupSystemListeners();
+        this._addListeners();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         console.debug(`[AppShell] disconnectedCallback!`);
+
+        this._removeListener();
+
+        this._destroy$.next();
+        this._destroy$.complete();
     }
 
     /**
@@ -88,58 +91,60 @@ export class AppShell extends LitElement {
 
         const outlet = this.shadowRoot.getElementById('outlet');
         this.router = new Router(outlet);
-        
-        // Initial route check
-        if (this.tokenAuth.value) {
-            this._handleAuthRouting(this.tokenAuth.value);
-        }
+
+        tokenManager.isAuthenticated$
+            .pipe(takeUntil(this._destroy$))
+            .subscribe(state => {
+                this._handleAuthRouting(state)
+            });
+
+        apiManager.isAuthenticated$
+            .pipe(takeUntil(this._destroy$), filter(state => state.isAuth !== null))
+            .subscribe(state => { 
+                this._handleAuthRouting(state)
+            });
     }
 
-    _setupSystemListeners() {
-        // Handle BFcache (Back-Forward Cache)
-        window.addEventListener('pageshow', (e) => {
-            console.log("[AppShell] pageshow", e.persisted ? "(from cache)" : "(new)");
-            if (e.persisted) {
-                // If coming back from cache, we might need to re-sync Managers
-                // or force a route check.
-                this._handleAuthRouting(this.tokenAuth.value);
-            }
-        });
+    updated(changedProperties) {
+        console.debug('[AppShell] updated:', changedProperties);
+    }
 
-        document.addEventListener('visibilitychange', () => {
-            document.visibilityState === 'visible' 
-            ? console.log("[AppShell] Visible") 
-            : console.log("[AppShell] Invisible");
-        });
+    _addListeners() {
+        document.addEventListener('visibilitychange', this._onVisibility);
+        window.addEventListener('app:loader', this._onLoader);
+        window.addEventListener('app:dialog', this._onDialog);
+    }
 
-        window.addEventListener('app:loader', (e) => {
-            this.loading = e.detail;
-            this.requestUpdate();
-        });
-
-        window.addEventListener('app:dialog', (e) => {
-            this.alert = { show: true, ...e.detail };
-            this.requestUpdate();
-        });
+    _removeListener() {
+        document.removeEventListener('visibilitychange', this._onVisibility);
+        window.removeEventListener('app:loader', this._onLoader);
+        window.removeEventListener('app:dialog', this._onDialog);
     }
 
     _handleAuthRouting(authState) {
         if (!this.router || !authState) return;
 
-        const { isAuth, token, isLogout } = authState;
+        const { isAuth, _, isLogout } = authState;
         console.log(`[AppShell] Routing logic -> isAuth: ${isAuth}`);
+        console.log(`[AppShell] Routing logic -> isLogout: ${isLogout}`);
 
-        if (!isLogout && !isAuth && this.router.isAtHome) {
-            this.alert = {
-                show: true,
-                title: 'Session Expired',
-                message: 'Your session has timed out. Please log in again.'
-            };
-            this.requestUpdate();
-            return;
+        if (isAuth === false) {
+            if (this.router.isAtSecuredView === true) {
+                if (isLogout) {
+                    this.router.toLogin();
+                } else {
+                    this.alert = {
+                        show: true,
+                        title: 'Session Expired',
+                        message: 'Your session has timed out. Please log in again.'
+                    };
+                    this.requestUpdate();
+                }
+                return;
+            }
         }
         
-        isAuth ? this.router.toHome() : this.router.toLogin();
+        isAuth === true ? this.router.toHome() : this.router.toLogin();
     }
 
     _onClickDialog() {

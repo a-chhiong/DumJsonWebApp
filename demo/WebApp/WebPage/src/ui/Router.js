@@ -18,14 +18,18 @@ export class Router {
      */
     isAt(routeName) {
         const tagName = this.routes.get(routeName);
-        if (!tagName || !this.container.firstChild) return false;
+        if (!tagName || !this.container.firstChild) {
+            console.debug('[Router] tagName:', tagName);
+            console.debug('[Router] firstChild:', this.container.firstChild);
+            return null;
+        }
         return this.container.firstChild.tagName.toLowerCase() === tagName;
     }
 
     /**
      * Boolean helper for the AppShell's logic.
      */
-    get isAtHome() {
+    get isAtSecuredView() {
         return this.isAt('home');
     }
 

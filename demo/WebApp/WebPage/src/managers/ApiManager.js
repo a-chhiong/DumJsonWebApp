@@ -18,7 +18,7 @@ class ApiManager {
         this._refreshPromise = null;
 
         // Initialize Subject with a default state
-        this._authSubject = new BehaviorSubject({ isAuth: false });
+        this._authSubject = new BehaviorSubject({ isAuth: null });
         // Expose the observable immediately so UI can subscribe anytime
         this.isAuthenticated$ = this._authSubject.asObservable();
     }
@@ -90,9 +90,7 @@ class ApiManager {
                 try {
                     const token = tokenManager.getAccessToken();
                     if (!token) {
-                        this._authSubject.next({
-                            isAuth: false
-                        });
+                        this._updateAuthState(false);
                         throw new Error("No access token for this slot");
                     }
                     config.headers.Authorization = `DPoP ${token}`;
@@ -149,9 +147,7 @@ class ApiManager {
                         try {
                             const token = tokenManager.getRefreshToken();
                             if (!token) {
-                                this._authSubject.next({
-                                    isAuth: false
-                                });
+                                this._updateAuthState(false);
                                 throw new Error("No refresh token for this slot");
                             }
                             console.log(`[ApiManager] Refreshing token chain...`);
@@ -166,6 +162,7 @@ class ApiManager {
                             // Resolve the lock with the new token
                             return accessToken; 
                         } catch (err) {
+                            console.log(`[ApiManager] Refreshing token failed!`);
                             await tokenManager.clearTokens();
                             throw err;
                         } finally {
@@ -187,6 +184,15 @@ class ApiManager {
                 return Promise.reject(error);
             }
         );
+    }
+
+    // Helper to update the stream
+    _updateAuthState(isAuth) {
+        const state = {
+            isAuth: isAuth,
+        }
+        console.debug(`[ApiManager] AuthState:`, state);
+        this._authSubject.next(state);
     }
 }
 

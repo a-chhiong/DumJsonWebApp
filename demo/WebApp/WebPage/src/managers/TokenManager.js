@@ -74,7 +74,9 @@ class TokenManager {
             try {
                 const [at, rt] = await this._loadTokens(idx);
                 this._sessionTokens[idx] = (at || rt) ? { at, rt } : null;
-                if (idx === this._currentIdx) this._updateAuthState(); // Update stream
+                if (idx === this._currentIdx) {
+                    this._updateAuthState(); // Update stream
+                }
             } catch (e) {
                 console.error(`[TokenManager] Hydration error for slot ${idx}`, e);
             } finally {
@@ -90,14 +92,9 @@ class TokenManager {
      * Internal check to prevent out-of-order access.
      */
     _assertReady() {
-        if (!this._isInitialised) {
-            throw new Error("[TokenManager] Access denied: Manager is still initializing.");
-        }
-
-        if (this._hydratingSlots.has(this._currentIdx)) {
-            // This prevents race conditions during SESSION_SYNC or TOKEN_SYNC
-            throw new Error(`[TokenManager] Access denied: Slot ${this._currentIdx} is currently re-hydrating.`);
-        }
+        if (!this._isInitialised) throw new Error("[TokenManager] Not initialized.");
+        // This prevents race conditions during SESSION_SYNC or TOKEN_SYNC
+        if (this._hydratingSlots.has(this._currentIdx)) throw new Error(`[TokenManager] Slot ${this._currentIdx} is hydrating.`);
     }
 
     // Explicit index-based accessors
@@ -141,12 +138,12 @@ class TokenManager {
 
     async _clearTokens(idx) {
         await Promise.all([
-            vaultManager.clear(`${Identity.APP_SCHEM}AT[${idx}]`),
-            vaultManager.clear(`${Identity.APP_SCHEM}RT[${idx}]`)
+            vaultManager.delete(`${Identity.APP_SCHEM}AT[${idx}]`),
+            vaultManager.delete(`${Identity.APP_SCHEM}RT[${idx}]`)
         ]);
     }
 
-    async clearTokens(isLogout = false) {
+    async clearTokens(isLogout = null) {
         this._assertReady();
         const idx = this._currentIdx;
         const was = this._sessionTokens[idx];
@@ -163,13 +160,15 @@ class TokenManager {
     }
 
     // Helper to update the stream
-    _updateAuthState(isLogout = false) {
+    _updateAuthState(isLogout = null) {
         const current = this._sessionTokens[this._currentIdx];
-        this._authSubject.next({
+        const state = {
             isAuth: !!current?.at,
             token: current?.at || null,
             isLogout: isLogout
-        });
+        }
+        console.debug(`[TokenManager] AuthState:`, state);
+        this._authSubject.next(state);
     }
 }
 

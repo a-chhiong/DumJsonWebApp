@@ -5,6 +5,7 @@ import { apiManager } from '../../managers/ApiManager.js';
 import { tokenManager } from '../../managers/TokenManager.js';
 import { themeManager } from '../../managers/ThemeManager.js';
 import { Theme } from '../../constants/Theme.js';
+import { dpopManager } from '../../managers/DPoPManager.js';
 
 export class HomeViewModel extends BaseViewModel {
     constructor(host) {
@@ -69,9 +70,9 @@ export class HomeViewModel extends BaseViewModel {
                 this._sessionTime$.next(rtLeft);
 
                 if (atLeft <= 0) 
-                    console.warn("AccessToken Expired");
+                    console.warn("[HomeViewModel] 🚨 AccessToken Expired");
                 if (rtLeft <= 0) 
-                    console.warn("RefreshToken Expired");
+                    console.warn("[HomeViewModel] 🚨 RefreshToken Expired");
             }),
             takeWhile(({ rtLeft }) => rtLeft >= 0, true),
             takeUntil(this.destroy$) 
@@ -98,8 +99,9 @@ export class HomeViewModel extends BaseViewModel {
             const rt = tokenManager.getRefreshToken();
             if (rt) await apiManager.tokenApi.post("/logout", { refreshToken: rt });
         } finally {
-            await tokenManager.clearTokens(true);
             this._user$.next(null);
+            await dpopManager.clearKeys();
+            await tokenManager.clearTokens(true);
         }
     }
 
